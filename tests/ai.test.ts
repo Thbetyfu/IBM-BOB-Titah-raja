@@ -260,4 +260,30 @@ describe("Fase 2: AI Decree NLP Gateway & Resiliency Suite", () => {
     expect(result.valid).toBe(true);
     expect(result.kategori).toBe("keamanan");
   });
+
+  it("harus menguraikan flag valid secara presisi saat menerima nilai string false atau 0 (TC-F2-45)", () => {
+    const gateway = new AIDecreeGateway();
+
+    const stringFalseOutput = {
+      keadilan: 0.2,
+      kesejahteraan: 0.1,
+      keamanan: 0.0,
+      lingkungan: 0.0,
+      pajakDelta: 0,
+      biayaEmas: 10,
+      kategori: "sosial",
+      valid: "false" // string "false"
+    };
+
+    const clampedFalse = gateway.clampNumericVector(stringFalseOutput, "LLM_PRIMARY");
+    expect(clampedFalse.valid).toBe(false);
+
+    const stringZeroOutput = {
+      ...stringFalseOutput,
+      valid: "0" // string "0"
+    };
+
+    const clampedZero = gateway.clampNumericVector(stringZeroOutput, "LLM_PRIMARY");
+    expect(clampedZero.valid).toBe(false);
+  });
 });

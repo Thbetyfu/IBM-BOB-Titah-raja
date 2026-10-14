@@ -199,22 +199,38 @@ export class GameSocketServer {
     if (socket.kingdomId && this.kingdomConnections.get(socket.kingdomId) === socket) {
       this.kingdomConnections.delete(socket.kingdomId);
     }
+
+    // Immediately cancel and zeroize any orphaned ephemeral pairings on disconnection
+    if (socket.kingdomId) {
+      this.pairingManager.cancelPending(socket.kingdomId);
+    }
   }
 
   /**
-   * Router for all client actions.
+   * Router for all client actions (supports both action and event envelopes per SDD 7.1 C).
    */
   public async handleSocketMessage(
     socket: AuthenticatedSocket,
     rawMessage: string
   ): Promise<void> {
     try {
-      const parsed = JSON.parse(rawMessage) as WebSocketMessage;
-      const action = parsed.action;
-      const payload = (parsed.payload || {}) as Record<string, unknown>;
+      const parsed = JSON.parse(rawMessage) as Record<string, unknown>;
+      const action = String(parsed.action || parsed.event || "");
+      const nestedPayload = (parsed.payload && typeof parsed.payload === "object"
+        ? parsed.payload
+        : {}) as Record<string, unknown>;
+      const nestedData = (parsed.data && typeof parsed.data === "object"
+        ? parsed.data
+        : {}) as Record<string, unknown>;
+      const payload: Record<string, unknown> = {
+        ...parsed,
+        ...nestedData,
+        ...nestedPayload
+      };
 
       switch (action) {
         case "SUBMIT_DECREE":
+        case "ISSUE_DECREE_REQUEST":
           await this.handleSubmitDecree(socket, payload);
           break;
 
@@ -227,6 +243,7 @@ export class GameSocketServer {
           break;
 
         case "LAUNCH_ATTACK":
+        case "LAUNCH_MILITARY_ATTACK":
           this.handleLaunchAttack(socket, payload);
           break;
 
@@ -255,10 +272,10 @@ export class GameSocketServer {
     let result: DecreeSemanticVector;
 
     if (sourceType === "PRESET_CARD") {
-      const cardId = String(payload.cardId || payload.text || "");
+      const cardId = String(payload.cardId || payload.text || payload.rawText || "");
       result = this.decreeGateway.resolvePresetCard(cardId);
     } else {
-      const text = String(payload.text || "");
+      const text = String(payload.text || payload.rawText || "");
       result = await this.decreeGateway.processDecree(text);
     }
 
@@ -302,7 +319,11 @@ export class GameSocketServer {
       targetKingdomId: payload.targetKingdomId
         ? String(payload.targetKingdomId)
         : undefined,
-      pairingCode: payload.pairingCode ? String(payload.pairingCode) : undefined
+      pairingCode: payload.pairingCode
+        ? String(payload.pairingCode)
+        : payload.pairCode
+        ? String(payload.pairCode)
+        : undefined
     };
 
     const handshake = this.pairingManager.submitHandshake(geoPayload);
@@ -352,7 +373,9 @@ export class GameSocketServer {
       payload.attackerKingdomId || socket.kingdomId || ""
     );
     const defenderKingdomId = String(payload.defenderKingdomId || "");
-    const attackerTroops = Number(payload.attackerTroops || 0);
+    const attackerTroops = Number(
+      payload.attackerTroops ?? payload.pasukanDikirim ?? payload.troopsSent ?? 0
+    );
     const defenderTroops = Number(payload.defenderTroops || 20);
     const posRondaLv = Number(payload.posRondaLv || 1);
     const alliedHelpTroops = Number(payload.alliedHelpTroops || 0);

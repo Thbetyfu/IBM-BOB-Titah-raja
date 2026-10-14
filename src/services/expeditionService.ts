@@ -40,13 +40,16 @@ export class FrontierExpeditionEngine {
     emasSaatIni: number,
     prng: () => number = Math.random
   ): ExpeditionResolutionResult {
-    if (pasukanDikirim < 5) {
+    const pasukan = Math.floor(Number(pasukanDikirim) || 0);
+    const emas = Math.floor(Number(emasSaatIni) || 0);
+
+    if (pasukan < 5) {
       throw new Error("MINIMUM_5_TROOPS_REQUIRED");
     }
 
     switch (doctrine) {
       case ExpeditionDoctrine.PILLAGE: {
-        const pasukanGugur = Math.min(pasukanDikirim, 1 + Math.floor(prng() * 3));
+        const pasukanGugur = Math.min(pasukan, 1 + Math.floor(prng() * 3));
         return {
           doctrine,
           panganDelta: 60,
@@ -60,7 +63,7 @@ export class FrontierExpeditionEngine {
       }
 
       case ExpeditionDoctrine.CONQUER_FORCED: {
-        const pasukanGugur = Math.min(pasukanDikirim, 1 + Math.floor(prng() * 2));
+        const pasukanGugur = Math.min(pasukan, 1 + Math.floor(prng() * 2));
         const newAgents: NewAgentProfile[] = Array.from({ length: 5 }, () => ({
           adil: 0.1,
           trust: 0.1,
@@ -81,7 +84,7 @@ export class FrontierExpeditionEngine {
       }
 
       case ExpeditionDoctrine.CONQUER_EMBRACED: {
-        if (emasSaatIni < 30) {
+        if (emas < 30) {
           throw new Error("INSUFFICIENT_GOLD_FOR_EMBRACE");
         }
 
@@ -103,6 +106,9 @@ export class FrontierExpeditionEngine {
           generalAdilPenalty: 0.0
         };
       }
+
+      default:
+        throw new Error(`UNKNOWN_EXPEDITION_DOCTRINE: ${String(doctrine)}`);
     }
   }
 }

@@ -174,6 +174,30 @@ describe("Fase 2: Combat, Expedition, Calamity, & Gateway Suite", () => {
       expect(res.fDef).toBe(52);
       expect(res.fAtk).toBe(40);
     });
+
+    it("harus membersihkan dan membulatkan prajurit desimal secara deterministik pada perhitungan korban (TC-F2-46)", () => {
+      const fixedPrng = () => 0.5;
+      const res = CombatWarService.resolve({
+        attackerKingdomId: "k-atk",
+        defenderKingdomId: "k-def",
+        attackerTroops: 25.8, // desimal
+        defenderTroops: 10.4, // desimal
+        posRondaLv: 0,
+        alliedHelpTroops: 0,
+        isAttackerOnsiteVerified: true,
+        areSameAlliance: false,
+        panganDef: 100,
+        emasDef: 100,
+        prng: fixedPrng
+      });
+
+      expect(Number.isInteger(res.gugurAtk)).toBe(true);
+      expect(Number.isInteger(res.gugurDef)).toBe(true);
+      expect(Number.isInteger(res.survivorsAtk)).toBe(true);
+      expect(Number.isInteger(res.survivorsDef)).toBe(true);
+      expect(res.survivorsAtk).toBe(25 - res.gugurAtk);
+      expect(res.survivorsDef).toBe(10 - res.gugurDef);
+    });
   });
 
   describe("Ekspedisi Desa Rimba NPC (FrontierExpeditionEngine)", () => {
@@ -630,11 +654,175 @@ describe("Fase 2: Combat, Expedition, Calamity, & Gateway Suite", () => {
       expect(healthJson.status).toBe("HEALTHY");
       expect(healthJson.service).toBe("titah-rakyat-backend");
 
+      // Query-safe health check
+      const queryHealthRes = await fetch(`http://127.0.0.1:${addr.port}/health?probe=ready&t=123`);
+      expect(queryHealthRes.status).toBe(200);
+
       const notFoundRes = await fetch(`http://127.0.0.1:${addr.port}/random-route`);
       expect(notFoundRes.status).toBe(404);
 
       await socketService.close();
       await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    });
+
+    it("harus membersihkan pairing ephemeral dan mencegah ghost match saat socket klien disconnect (TC-F2-37)", async () => {
+      const secret = "disconnect_test_secret";
+      const socketServer = new GameSocketServer(secret);
+
+      const tokenA = JwtService.sign({ sub: "p-disc-1", worldId: "w-disc", kingdomId: "k-disc-1" }, secret);
+      const tokenB = JwtService.sign({ sub: "p-disc-2", worldId: "w-disc", kingdomId: "k-disc-2" }, secret);
+
+      const eventsA: Record<string, ((...args: unknown[]) => void)[]> = {};
+      const messagesA: string[] = [];
+      const mockSocketA: any = {
+        readyState: 1,
+        on: (ev: string, fn: (...args: unknown[]) => void) => {
+          eventsA[ev] = eventsA[ev] || [];
+          eventsA[ev].push(fn);
+        },
+        send: (msg: string) => messagesA.push(msg)
+      };
+
+      const messagesB: string[] = [];
+      const mockSocketB: any = {
+        readyState: 1,
+        on: () => {},
+        send: (msg: string) => messagesB.push(msg)
+      };
+
+      // 1. Klien A terkoneksi
+      socketServer.handleConnection(mockSocketA, {
+        url: `/?token=${tokenA}&worldId=w-disc&kingdomId=k-disc-1`
+      } as unknown as IncomingMessage);
+
+      // 2. Klien A mengirim VERIFY_ALLIANCE_HANDSHAKE
+      const now = Date.now();
+      await socketServer.handleSocketMessage(
+        mockSocketA,
+        JSON.stringify({
+          action: "VERIFY_ALLIANCE_HANDSHAKE",
+          payload: {
+            kingdomId: "k-disc-1",
+            targetKingdomId: "k-disc-2",
+            latitude: -7.803249,
+            longitude: 110.364404,
+            accuracyMeters: 10,
+            isMock: false,
+            deviceEntropyHash: "entropy_disc_1",
+            timestamp: now,
+            pairingCode: "SUMPAH_DISC"
+          }
+        })
+      );
+
+      // 3. Klien A tiba-tiba terputus (rapid network disconnect)
+      expect(eventsA["close"]).toBeDefined();
+      eventsA["close"][0](); // memicu unregisterSocket
+
+      // 4. Klien B terkoneksi dan mencoba handshake dengan pairing code yang sama
+      socketServer.handleConnection(mockSocketB, {
+        url: `/?token=${tokenB}&worldId=w-disc&kingdomId=k-disc-2`
+      } as unknown as IncomingMessage);
+
+      await socketServer.handleSocketMessage(
+        mockSocketB,
+        JSON.stringify({
+          action: "VERIFY_ALLIANCE_HANDSHAKE",
+          payload: {
+            kingdomId: "k-disc-2",
+            targetKingdomId: "k-disc-1",
+            latitude: -7.803260,
+            longitude: 110.364410,
+            accuracyMeters: 10,
+            isMock: false,
+            deviceEntropyHash: "entropy_disc_2",
+            timestamp: now,
+            pairingCode: "SUMPAH_DISC"
+          }
+        })
+      );
+
+      // 5. Verifikasi bahwa Klien B TIDAK dipasangkan dengan Socket A yang sudah offline
+      // Klien B tidak boleh menerima ALLIANCE_VERIFIED_SUCCESS karena A sudah disconnect
+      const successMsgs = messagesB.filter((m) => {
+        try {
+          return JSON.parse(m).event === "ALLIANCE_VERIFIED_SUCCESS";
+        } catch {
+          return false;
+        }
+      });
+      expect(successMsgs.length).toBe(0);
+
+      await socketServer.close();
+    });
+
+    it("harus mendukung frame pesan SDD 7.1 C (ISSUE_DECREE_REQUEST & LAUNCH_MILITARY_ATTACK) (TC-F2-38)", async () => {
+      const socketServer = new GameSocketServer("secret");
+      const messages: string[] = [];
+      const mockSocket: any = {
+        readyState: 1,
+        worldId: "w-sdd",
+        kingdomId: "k-sdd",
+        player: { sub: "p-sdd" },
+        send: (msg: string) => messages.push(msg)
+      };
+
+      // 1. SDD 7.1 C Frame: ISSUE_DECREE_REQUEST dengan cardId pada root envelope
+      await socketServer.handleSocketMessage(
+        mockSocket,
+        JSON.stringify({
+          event: "ISSUE_DECREE_REQUEST",
+          kingdomId: "k-sdd",
+          sourceType: "PRESET_CARD",
+          cardId: "CARD_03",
+          rawText: ""
+        })
+      );
+      expect(messages.length).toBe(1);
+      const decreeAck = JSON.parse(messages[0]);
+      expect(decreeAck.event).toBe("DECREE_ACCEPTED");
+      expect(decreeAck.data.semanticVector.pajakDelta).toBe(-5);
+
+      // 2. SDD 7.1 C Frame: LAUNCH_MILITARY_ATTACK dengan pasukanDikirim pada root envelope
+      await socketServer.handleSocketMessage(
+        mockSocket,
+        JSON.stringify({
+          event: "LAUNCH_MILITARY_ATTACK",
+          attackerKingdomId: "k-sdd",
+          defenderKingdomId: "k-def-sdd",
+          pasukanDikirim: 50,
+          defenderTroops: 5,
+          isAttackerOnsiteVerified: true,
+          areSameAlliance: false
+        })
+      );
+      expect(messages.length).toBe(2);
+      const battleRep = JSON.parse(messages[1]);
+      expect(battleRep.event).toBe("BATTLE_RESULT");
+      expect(battleRep.data.status).toBe("SUCCESS");
+
+      await socketServer.close();
+    });
+
+    it("harus menolak doktrin ekspedisi tak dikenal secara defensif (TC-F2-39)", () => {
+      expect(() =>
+        FrontierExpeditionEngine.resolve(
+          "INVALID_DOCTRINE" as ExpeditionDoctrine,
+          10,
+          100
+        )
+      ).toThrow("UNKNOWN_EXPEDITION_DOCTRINE");
+    });
+
+    it("harus menjaga kestabilan numerik Calamity Engine saat menerima input non-finite (TC-F2-40)", () => {
+      const result = CalamityAndBossEngine.evaluateEcology(NaN, NaN);
+      expect(Number.isFinite(result.newHarmony)).toBe(true);
+      expect(result.newHarmony).toBeGreaterThanOrEqual(0);
+      expect(result.newHarmony).toBeLessThanOrEqual(100);
+
+      const bossFsm = new BossEncounterStateMachine();
+      const seasonRes = bossFsm.evaluateSeason20(NaN);
+      expect(seasonRes.action).toBe("SPAWN_BOSS"); // NaN di-fallback ke 0.0 < 50
     });
   });
 });

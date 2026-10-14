@@ -414,6 +414,14 @@ export class AIDecreeGateway {
     const pajakDelta = Math.max(-10, Math.min(10, Math.round(Number(pajakDeltaRaw) || 0)));
     const biayaEmas = Math.max(0, Math.min(100, Math.round(Number(biayaEmasRaw) || 0)));
 
+    const valid =
+      validRaw === false ||
+      validRaw === "false" ||
+      validRaw === 0 ||
+      validRaw === "0"
+        ? false
+        : Boolean(validRaw);
+
     return {
       keadilan: Number(keadilan.toFixed(3)),
       kesejahteraan: Number(kesejahteraan.toFixed(3)),
@@ -422,7 +430,7 @@ export class AIDecreeGateway {
       pajakDelta,
       biayaEmas,
       kategori: String(kategoriRaw),
-      valid: Boolean(validRaw),
+      valid,
       source,
       confidence: Number(Number(confidenceRaw).toFixed(3))
     };

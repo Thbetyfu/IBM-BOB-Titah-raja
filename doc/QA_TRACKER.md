@@ -4,7 +4,7 @@
 **Target Kompetisi:** IBM Code the Future 2026 (Beginner Track)  
 **Dokumen Induk:** `doc/PRD.md` (v2.0), `doc/SRS.md` (v2.1), `doc/SDD.md` (v2.1), dan `ROADMAP.md`  
 **Terakhir Diperbarui:** 14 Oktober 2026  
-**Status QA Fase 1 & 2:** **100% PASSED (0 Open Bugs, Strict Type Check Clean, 4 Test Suites, 63 Automated Tests)**
+**Status QA Fase 1 & 2:** **100% PASSED (0 Open Bugs, Strict Type Check Clean, 4 Test Suites, 72 Automated Tests)**
 
 ---
 
@@ -15,7 +15,7 @@
 | FASE   | DESKRIPSI SPRINT                       | CAKUPAN PENGUJIAN         | STATUS  | PASS RATE | BUGS OPEN|
 +──────────────────────────────────────────────────────────────────────────────────────────────────────────+
 | FASE 1 | Core Sim, ECS Engine, & PostgreSQL DDL | tests/sim.test.ts (25 TC) | PASSED  | 100.0%    | 0 OPEN   |
-| FASE 2 | WebSocket Gateway, AI NLP, & Geolocation| geo, ai, expedition (38 TC)| PASSED  | 100.0%    | 0 OPEN   |
+| FASE 2 | WebSocket Gateway, AI NLP, & Geolocation| geo, ai, expedition (47 TC)| PASSED  | 100.0%    | 0 OPEN   |
 | FASE 3 | Frontend 2.5D Isometric & React HUD    | E2E Viewport & Canvas     | PENDING | -         | 0 OPEN   |
 | FASE 4 | E2E Integration, Load, & Stress Testing| 4 Automated Test Suites   | PENDING | -         | 0 OPEN   |
 | FASE 5 | Release Packaging, Audit & Pitch Deck  | Final Acceptance Audit    | PENDING | -         | 0 OPEN   |
@@ -97,6 +97,15 @@
 | **TC-F2-34** | `handleLaunchAttack` & `Expedition` | SRS FR-12, FR-22 | FR-12, FR-22 | Routing eksekusi aksi tempur PvP dan ekspedisi rimba NPC via WS message. | **PASS** |
 | **TC-F2-35** | `broadcastDeltaState` | SRS FR-04, NFR-02 | KPI-2.1 | Siaran delta state musim ke seluruh client satu realm & penanganan defensif malformed JSON. | **PASS** |
 | **TC-F2-36** | `createGameServer` | SRS FR-01, SDD 7.1 | NFR-01 | Inisialisasi HTTP server game & verifikasi endpoint `/health` (200 OK HEALTHY). | **PASS** |
+| **TC-F2-37** | `unregisterSocket` | SRS FR-16, SDD 4.4 | NFR-06 | Pembersihan instan pending pairing ephemeral & zeroize RAM saat socket klien disconnect. | **PASS** |
+| **TC-F2-38** | `handleSocketMessage` | SRS FR-05, SDD 7.1 C| FR-05, FR-12 | Dukungan amplop frame event SDD Bab 7.1 C (`ISSUE_DECREE_REQUEST`, `LAUNCH_MILITARY_ATTACK`, `pairCode`). | **PASS** |
+| **TC-F2-39** | `FrontierExpeditionEngine` | SRS FR-22, SDD 4.5 | NFR-04 | Penolakan defensif doktrin ekspedisi tak dikenal melempar `UNKNOWN_EXPEDITION_DOCTRINE`. | **PASS** |
+| **TC-F2-40** | `CalamityAndBossEngine` | SRS FR-14, SDD 4.6 | NFR-04 | Penjagaan stabilitas numerik saat menerima masukan ekstrim non-finite / NaN. | **PASS** |
+| **TC-F2-42** | `EphemeralPairingManager` | SRS FR-16, SDD 4.4 | FR-16 | Penolakan pencocokan aliansi saat kode pairing kedua pihak bertentangan (`KODE_ALPHA` vs `KODE_BETA`). | **PASS** |
+| **TC-F2-43** | `EphemeralPairingManager` | SRS FR-18, SDD 4.4 | FR-18 | Fast-fail langsung tanpa antre RAM saat terdeteksi mock location / akurasi buruk. | **PASS** |
+| **TC-F2-44** | `EphemeralPairingManager` | SRS FR-17, NFR-06 | NFR-06 | Pemusnahan koordinat memori RAM saat pemanggilan `cancelPending` dan `clear()`. | **PASS** |
+| **TC-F2-45** | `AIDecreeGateway` | SRS FR-07, SDD 4.3 | NFR-07 | Penguraian presisi nilai boolean string `valid: "false"` dan `"0"` pada clamp numeric vector. | **PASS** |
+| **TC-F2-46** | `CombatWarService` | SRS FR-12, SDD 4.5 | NFR-04 | Sanitasi pembulatan prajurit desimal pada kalkulasi korban dan penyintas pertempuran. | **PASS** |
 
 ---
 
@@ -107,61 +116,75 @@ Test Runner: Vitest v2.1.9
 Node Runtime: v22.17.0 (win32-x64)
 Command: npm test
 
- ✓ tests/geo.test.ts (10 tests passed) 14ms
-   ✓ Fase 2: Geolocation Onsite Verifier & Anti-Spoofing Suite (10 tests)
-     ✓ harus menghitung jarak Haversine geodesik secara presisi bit-level dan stabil dari NaN (TC-F2-01) (2ms)
-     ✓ harus meloloskan verifikasi aliansi jika jarak <= 200 meter (TC-F2-02) (1ms)
-     ✓ harus menolak verifikasi jika jarak melebihi 200 meter (TC-F2-03) (1ms)
-     ✓ harus mendeteksi dan menolak sensor Mock Location Provider (TC-F2-04) (1ms)
-     ✓ harus menolak koordinat dengan akurasi GPS buruk > 50 meter (TC-F2-05) (1ms)
-     ✓ harus mencegah self-pairing pada 1 perangkat fisik dengan kesamaan entropy hash (TC-F2-06) (1ms)
-     ✓ harus mendeteksi lonjakan kecepatan teleportasi tidak wajar > 50 m/s (TC-F2-07) (1ms)
-     ✓ harus menolak handshake dengan delta timestamp > 10 detik atau koordinat basi (TC-F2-08) (1ms)
-     ✓ harus memusnahkan koordinat GPS mentah dari RAM (< 50ms) dan zero persistence (TC-F2-09) (1ms)
-     ✓ harus mengelola pairing aliansi ephemeral dengan TTL 10 detik (TC-F2-10) (1ms)
+ ✓ tests/geo.test.ts (13 tests passed) 12ms
+   ✓ Fase 2: Geolocation Onsite Verifier & Anti-Spoofing Suite (13 tests)
+     ✓ harus menghitung jarak Haversine geodesik secara presisi bit-level dan stabil dari NaN (TC-F2-01)
+     ✓ harus meloloskan verifikasi aliansi jika jarak <= 200 meter (TC-F2-02)
+     ✓ harus menolak verifikasi jika jarak melebihi 200 meter (TC-F2-03)
+     ✓ harus mendeteksi dan menolak sensor Mock Location Provider (TC-F2-04)
+     ✓ harus menolak koordinat dengan akurasi GPS buruk > 50 meter (TC-F2-05)
+     ✓ harus mencegah self-pairing pada 1 perangkat fisik dengan kesamaan entropy hash (TC-F2-06)
+     ✓ harus mendeteksi lonjakan kecepatan teleportasi tidak wajar > 50 m/s (TC-F2-07)
+     ✓ harus menolak handshake dengan delta timestamp > 10 detik atau koordinat basi (TC-F2-08)
+     ✓ harus memusnahkan koordinat GPS mentah dari RAM (< 50ms) dan zero persistence (TC-F2-09)
+     ✓ harus mengelola pairing aliansi ephemeral dengan TTL 10 detik (TC-F2-10)
+     ✓ harus menolak pencocokan jika kode pairing kedua pihak bertentangan (TC-F2-42)
+     ✓ harus fast-fail pada submitHandshake saat sensor tiruan atau GPS tidak akurat terdeteksi (TC-F2-43)
+     ✓ harus memusnahkan koordinat memori saat cancelPending dan manager.clear() (TC-F2-44)
 
- ✓ tests/sim.test.ts (25 tests passed) 61ms
+ ✓ tests/sim.test.ts (25 tests passed) 63ms
    ✓ Fase 1: Multi-Agent ECS Behavior Engine (7 tests)
    ✓ Fase 1: Kalkulator Makroekonomi & Klausul Kebangkrutan (5 tests)
    ✓ Fase 1: Deterministic World Orchestrator (Universal 45-Second FSM) (5 tests)
    ✓ Fase 1: Layanan Reinkarnasi Dinasti, Skor Warisan & Faksi (SDD 4.7) (4 tests)
 
- ✓ tests/expedition.test.ts (14 tests passed) 17ms
-   ✓ Fase 2: Combat, Expedition, Calamity, & Gateway Suite (14 tests)
-     ✓ Pertempuran Militer & Resolusi PvP (CombatWarService) (6 tests)
-       ✓ harus menolak serangan jika penyerang belum diverifikasi onsite (TC-F2-19) (1ms)
-       ✓ harus melarang penyerangan sesama sekutu aliansi / friendly fire (TC-F2-20) (1ms)
-       ✓ harus melempar error jika pasukan serang kurang dari 10 prajurit (TC-F2-21) (1ms)
-       ✓ harus menyelesaikan kemenangan penyerang (SUCCESS) dan kuota jarahan ransum penyintas (TC-F2-22) (1ms)
-       ✓ harus menyelesaikan penyerang terpukul mundur (REPELLED) saat pertahanan lebih kuat (TC-F2-23) (1ms)
-       ✓ harus memperhitungkan pos ronda dan bantuan aliansi secara matematis (TC-F2-24) (1ms)
+ ✓ tests/expedition.test.ts (24 tests passed) 90ms
+   ✓ Fase 2: Combat, Expedition, Calamity, & Gateway Suite (24 tests)
+     ✓ Pertempuran Militer & Resolusi PvP (CombatWarService) (7 tests)
+       ✓ harus menolak serangan jika penyerang belum diverifikasi onsite (TC-F2-19)
+       ✓ harus melarang penyerangan sesama sekutu aliansi / friendly fire (TC-F2-20)
+       ✓ harus melempar error jika pasukan serang kurang dari 10 prajurit (TC-F2-21)
+       ✓ harus menyelesaikan kemenangan penyerang (SUCCESS) dan kuota jarahan ransum penyintas (TC-F2-22)
+       ✓ harus menyelesaikan penyerang terpukul mundur (REPELLED) saat pertahanan lebih kuat (TC-F2-23)
+       ✓ harus memperhitungkan pos ronda dan bantuan aliansi secara matematis (TC-F2-24)
+       ✓ harus membersihkan dan membulatkan prajurit desimal secara deterministik pada perhitungan korban (TC-F2-46)
      ✓ Ekspedisi Desa Rimba NPC (FrontierExpeditionEngine) (4 tests)
-       ✓ harus memvalidasi batas minimal 5 prajurit ekspedisi (TC-F2-25) (1ms)
-       ✓ harus mengeksekusi doktrin PILLAGE dengan rampasan sumber daya dan penalti moral (TC-F2-26) (1ms)
-       ✓ harus mengeksekusi doktrin CONQUER_FORCED dan menghasilkan 5 warga tawanan (TC-F2-27) (1ms)
-       ✓ harus mengeksekusi doktrin CONQUER_EMBRACED dengan biaya 30 emas dan warga sukarela (TC-F2-28) (1ms)
+       ✓ harus memvalidasi batas minimal 5 prajurit ekspedisi (TC-F2-25)
+       ✓ harus mengeksekusi doktrin PILLAGE dengan rampasan sumber daya dan penalti moral (TC-F2-26)
+       ✓ harus mengeksekusi doktrin CONQUER_FORCED dan menghasilkan 5 warga tawanan (TC-F2-27)
+       ✓ harus mengeksekusi doktrin CONQUER_EMBRACED dengan biaya 30 emas dan warga sukarela (TC-F2-28)
      ✓ Calamity & Boss Naga Banjir Engine (CalamityAndBossEngine) (2 tests)
-       ✓ harus mengevaluasi dinamika harmoni alam dan memicu bencana bertingkat (TC-F2-29) (1ms)
-       ✓ harus mengoperasikan Boss Naga Banjir FSM pada Musim 20 (TC-F2-30) (2ms)
-     ✓ Realtime WebSocket Gateway & Autentikasi JWT (TC-F2-31) (2 tests)
-       ✓ harus menerbitkan dan memverifikasi token JWT HMAC-SHA256 sesuai RFC 7519 (2ms)
-       ✓ harus menginisialisasi GameSocketServer dan memproses pesan titah kartu secara deterministik (2ms)
+       ✓ harus mengevaluasi dinamika harmoni alam dan memicu bencana bertingkat (TC-F2-29)
+       ✓ harus mengoperasikan Boss Naga Banjir FSM pada Musim 20 (TC-F2-30)
+     ✓ Realtime WebSocket Gateway & Autentikasi JWT (TC-F2-31) (11 tests)
+       ✓ harus menerbitkan dan memverifikasi token JWT HMAC-SHA256 sesuai RFC 7519
+       ✓ harus menginisialisasi GameSocketServer dan memproses pesan titah kartu secara deterministik
+       ✓ harus mengelola autentikasi handshake WebSocket RFC 6455 dan menolak token tidak valid (TC-F2-32)
+       ✓ harus memproses verifikasi aliansi onsite melalui WebSocket (TC-F2-33)
+       ✓ harus memproses serangan militer LAUNCH_ATTACK dan peluncuran ekspedisi LAUNCH_EXPEDITION (TC-F2-34)
+       ✓ harus menyiarkan delta state musim dan menangani error format pesan tidak valid (TC-F2-35)
+       ✓ harus menginisialisasi server game HTTP dan melayani health check endpoint 200 OK (TC-F2-36)
+       ✓ harus membersihkan pairing ephemeral dan mencegah ghost match saat socket klien disconnect (TC-F2-37)
+       ✓ harus mendukung frame pesan SDD 7.1 C (ISSUE_DECREE_REQUEST & LAUNCH_MILITARY_ATTACK) (TC-F2-38)
+       ✓ harus menolak doktrin ekspedisi tak dikenal secara defensif (TC-F2-39)
+       ✓ harus menjaga kestabilan numerik Calamity Engine saat menerima input non-finite (TC-F2-40)
 
- ✓ tests/ai.test.ts (9 tests passed) 204ms
-   ✓ Fase 2: AI Decree NLP Gateway & Resiliency Suite (9 tests)
-     ✓ harus menolak upaya prompt injection & jailbreak manipulasi sistem (TC-F2-11) (3ms)
-     ✓ harus membersihkan karakter berbahaya saat sanitasi input (TC-F2-11b) (1ms)
-     ✓ harus melakukan clamping mutlak pada vektor numerik hasil analisis (TC-F2-12) (1ms)
-     ✓ harus menguraikan titah bahasa Indonesia via Deterministic Regex Fallback (TC-F2-13) (2ms)
-     ✓ harus memuat seluruh 18 Kartu Kebijakan Tematik Nusantara dengan lookup O(1) (TC-F2-14) (2ms)
-     ✓ harus mentransisikan Circuit Breaker dari CLOSED ke OPEN setelah 3 kali gagal (TC-F2-15) (2ms)
-     ✓ harus fast-fail (< 50ms) dan langsung menggunakan Deterministic Fallback saat OPEN (TC-F2-16) (1ms)
-     ✓ harus transisi ke HALF_OPEN setelah cooldown dan kembali ke CLOSED saat berhasil (TC-F2-17) (65ms)
-     ✓ harus memutus panggilan LLM yang melewati batas waktu timeout keras 4.0 detik (TC-F2-18) (103ms)
+ ✓ tests/ai.test.ts (10 tests passed) 199ms
+   ✓ Fase 2: AI Decree NLP Gateway & Resiliency Suite (10 tests)
+     ✓ harus menolak upaya prompt injection & jailbreak manipulasi sistem (TC-F2-11)
+     ✓ harus membersihkan karakter berbahaya saat sanitasi input (TC-F2-11b)
+     ✓ harus melakukan clamping mutlak pada vektor numerik hasil analisis (TC-F2-12)
+     ✓ harus menguraikan titah bahasa Indonesia via Deterministic Regex Fallback (TC-F2-13)
+     ✓ harus memuat seluruh 18 Kartu Kebijakan Tematik Nusantara dengan lookup O(1) (TC-F2-14)
+     ✓ harus mentransisikan Circuit Breaker dari CLOSED ke OPEN setelah 3 kali gagal (TC-F2-15)
+     ✓ harus fast-fail (< 50ms) dan langsung menggunakan Deterministic Fallback saat OPEN (TC-F2-16)
+     ✓ harus transisi ke HALF_OPEN setelah cooldown dan kembali ke CLOSED saat berhasil (TC-F2-17)
+     ✓ harus memutus panggilan LLM yang melewati batas waktu timeout keras 4.0 detik (TC-F2-18)
+     ✓ harus menguraikan flag valid secara presisi saat menerima nilai string false atau 0 (TC-F2-45)
 
 Test Files:  4 passed (4)
-Tests:       63 passed (63)
-Duration:    1.24s
+Tests:       72 passed (72)
+Duration:    1.29s
 Exit Code:   0
 ```
 
@@ -262,11 +285,90 @@ Siklus Hidup Status Bug:
 #### 🔹 BUG-009: Handshake Rejection Code Mismatch Akibat Unhandled Header Undefined
 * **Status:** `[CLOSED]`
 * **Severity:** Medium
-* **Komponen:** `src/services/socketService.ts` (`GameSocketServer.handleConnection`)
-* **Gejala:** Pengujian penolakan handshake tanpa token (`TC-F2-32`) menghasilkan close code 4003 alih-alih 4001 yang diharapkan.
 * **Root Cause Analysis (RCA):** Properti `req.headers` diakses tanpa optional chaining (`req.headers["authorization"]`), menyebabkan `TypeError: Cannot read properties of undefined` saat request mock tidak menyertakan objek headers, sehingga alur langsung melompat ke blok catch dengan kode 4003.
 * **Resolusi:** Menambahkan optional chaining `req.headers?.["authorization"]` sesuai standar Defensive Programming.
 * **Verifikasi:** Lulus pengujian pada `tests/expedition.test.ts` (TC-F2-32) dengan penolakan kode 4001 untuk token absen dan 4003 untuk token tidak valid.
+
+#### 🔹 BUG-010: Orphaned Ephemeral Pairings on Socket Disconnection & False Handshake Matching
+* **Status:** `[CLOSED]`
+* **Severity:** High
+* **Komponen:** `src/services/socketService.ts` & `src/services/allianceService.ts`
+* **Gejala:** Jika Klien A mengirim `VERIFY_ALLIANCE_HANDSHAKE` lalu mengalami diskoneksi jaringan, request pending pairing-nya tetap menggantung di memori hingga TTL 10s habis. Klien B yang mengirim handshake kemudian berhasil di-match dengan Klien A yang offline, menghasilkan konfirmasi sukses palsu di Klien B sementara Klien A tidak menerima notifikasi.
+* **Root Cause Analysis (RCA):** Metode `GameSocketServer.unregisterSocket()` tidak mengabarkan `EphemeralPairingManager` untuk membersihkan antrean pairing milik kingdom yang terputus, dan `EphemeralPairingManager` belum memiliki metode `cancelPending(kingdomId)`.
+* **Resolusi:** Menambahkan metode `cancelPending(kingdomId)` pada `EphemeralPairingManager` yang me-zeroize koordinat RAM dan menghapus antrean saat socket disconnect di `unregisterSocket()`.
+* **Verifikasi:** Lulus pengujian pada `tests/expedition.test.ts` (TC-F2-37).
+
+#### 🔹 BUG-011: Unsanitized Floating-Point Troop Numbers in Battle Casualty & Survivor Equations
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `src/services/battleService.ts` (`CombatWarService.resolve`)
+* **Gejala:** Masukan jumlah prajurit berupa desimal/float (misal: 15.6) menghasilkan angka korban gugur dan penyintas berupa bilangan pecahan pada hasil resolusi pertempuran.
+* **Root Cause Analysis (RCA):** Meskipun `attackerTroops` dan `defenderTroops` telah disanitasi di awal fungsi menggunakan `Math.floor`, rumus kalkulasi korban gugur dan penyintas pada blok SUCCESS dan REPELLED masih mereferensikan properti mentah `input.attackerTroops` dan `input.defenderTroops`.
+* **Resolusi:** Mengganti seluruh referensi `input.attackerTroops` dan `input.defenderTroops` dengan variabel terverifikasi `attackerTroops` dan `defenderTroops`.
+* **Verifikasi:** Lulus pengujian pada `tests/expedition.test.ts` (TC-F2-46).
+
+#### 🔹 BUG-012: Unchecked Doctrine Fallthrough Returning Undefined in FrontierExpeditionEngine
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `src/services/expeditionService.ts` (`FrontierExpeditionEngine.resolve`)
+* **Gejala:** Jika doktrin ekspedisi yang dikirimkan klien tidak valid atau tidak dikenali, metode `resolve()` mengembalikan `undefined`, memicu `TypeError: Cannot read properties of undefined` pada pemanggil.
+* **Root Cause Analysis (RCA):** Blok `switch (doctrine)` tidak memiliki klausul `default:`.
+* **Resolusi:** Menambahkan klausul `default:` yang melempar exception `UNKNOWN_EXPEDITION_DOCTRINE`.
+* **Verifikasi:** Lulus pengujian pada `tests/expedition.test.ts` (TC-F2-39).
+
+#### 🔹 BUG-013: WebSocket Incompatibility with SDD 7.1 C Event Frames and Top-Level Envelope Fields
+* **Status:** `[CLOSED]`
+* **Severity:** High
+* **Komponen:** `src/services/socketService.ts` (`GameSocketServer.handleSocketMessage`)
+* **Gejala:** Pesan WebSocket standar SDD Bab 7.1 C yang menggunakan format `{ event: "ISSUE_DECREE_REQUEST", cardId: "CARD_01" }` ditolak dengan error `UNKNOWN_ACTION: undefined`, dan properti `cardId` tidak terbaca.
+* **Root Cause Analysis (RCA):** Parser pesan hanya mengecek `parsed.action` dan mengasumsikan seluruh data terbungkus di dalam `parsed.payload`.
+* **Resolusi:** Memperluas router agar mendukung `parsed.action || parsed.event`, memetakan `ISSUE_DECREE_REQUEST` ke handler titah dan `LAUNCH_MILITARY_ATTACK` ke handler serang, serta menggabungkan root payload dengan nested payload/data.
+* **Verifikasi:** Lulus pengujian pada `tests/expedition.test.ts` (TC-F2-38).
+
+#### 🔹 BUG-014: Conflicting Pairing Codes False Match in EphemeralPairingManager
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `src/services/allianceService.ts` (`EphemeralPairingManager.submitHandshake`)
+* **Gejala:** Dua pemain di lokasi berdekatan yang memasukkan kode pairing berbeda (misal: `"KODE_ALPHA"` dan `"KODE_BETA"`) secara keliru dapat terpasangkan jika `targetKingdomId` mereka saling menunjuk.
+* **Root Cause Analysis (RCA):** Kondisi evaluasi `isTargetMatch || isAllianceMatch || isCodeMatch` tidak memvalidasi apakah kedua pihak menyediakan kode pairing yang saling bertentangan sebelum mengesahkan target match.
+* **Resolusi:** Menambahkan penjaga eksplisit: jika kedua pihak menyediakan `pairingCode` atau `allianceId` dan nilainya tidak sama, iterasi dilewati (`continue`).
+* **Verifikasi:** Lulus pengujian pada `tests/geo.test.ts` (TC-F2-42).
+
+#### 🔹 BUG-015: Memory Zeroization Gap in EphemeralPairingManager.clear()
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `src/services/allianceService.ts` (`EphemeralPairingManager.clear`)
+* **Gejala:** Pemanggilan `manager.clear()` menghapus entri Map tanpa menimpa koordinat `latitude` dan `longitude` menjadi `0.0`, berpotensi menyisakan jejak GPS di heap RAM.
+* **Root Cause Analysis (RCA):** Metode `clear()` langsung memanggil `this.pendingRequests.clear()` tanpa iterasi zeroize seperti pada `cleanupExpired()`.
+* **Resolusi:** Menambahkan iterasi pemusnahan koordinat `entry.payload.latitude = 0.0; entry.payload.longitude = 0.0;` sebelum penghapusan Map.
+* **Verifikasi:** Lulus pengujian pada `tests/geo.test.ts` (TC-F2-44).
+
+#### 🔹 BUG-016: HTTP 404 on /health Endpoint with URL Query Parameters
+* **Status:** `[CLOSED]`
+* **Severity:** Low
+* **Komponen:** `src/server.ts` (`createGameServer`)
+* **Gejala:** Pemeriksaan kesehatan HTTP `/health?probe=ready` mengembalikan `404 NOT_FOUND`.
+* **Root Cause Analysis (RCA):** Evaluasi endpoint menggunakan perbandingan string langsung `req.url === "/health"`.
+* **Resolusi:** Mengekstrak pathname murni via `req.url.split("?")[0]`.
+* **Verifikasi:** Lulus pengujian pada `tests/expedition.test.ts` (TC-F2-36).
+
+#### 🔹 BUG-017: Unsafe String-to-Boolean Conversion for AI Adapter Valid Flag
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `src/ai/aiAdapter.ts` (`AIDecreeGateway.clampNumericVector`)
+* **Gejala:** Jika LLM mengembalikan JSON dengan string `valid: "false"` atau `valid: "0"`, hasil parsing mengevaluasi `Boolean("false") === true`, menganggap titah berbahaya sebagai sah.
+* **Root Cause Analysis (RCA):** Penggunaan fungsi bawaan `Boolean(validRaw)` yang mengevaluasi string non-kosong apapun sebagai `true`.
+* **Resolusi:** Menambahkan pemeriksaan eksplisit terhadap representasi string `"false"` dan `"0"`.
+* **Verifikasi:** Lulus pengujian pada `tests/ai.test.ts` (TC-F2-45).
+
+#### 🔹 BUG-018: Calamity Engine Vulnerability to Non-Finite and NaN Inputs
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `src/sim/calamityEngine.ts` (`CalamityAndBossEngine` & `BossEncounterStateMachine`)
+* **Gejala:** Masukan `NaN` pada `currentHarmony` atau `efekLingkunganTitah` merusak kalkulasi probabilitas bencana dan menghasilkan `newHarmony: NaN`.
+* **Root Cause Analysis (RCA):** Tidak adanya validasi numerik `Number.isFinite(...)` pada parameter masukan sebelum operasi matematika.
+* **Resolusi:** Memvalidasi dan menyediakan fallback nilai aman default jika parameter bernilai non-finite.
+* **Verifikasi:** Lulus pengujian pada `tests/expedition.test.ts` (TC-F2-40).
 
 ---
 
@@ -290,7 +392,7 @@ Setiap penambahan kode pada fase berikutnya (Fase 3 sampai Fase 5) WAJIB mematuh
    ```powershell
    npm test
    ```
-   *Kriteria Kelulusan:* 100% test case (63 test case Fase 1 + Fase 2) wajib berstatus PASS tanpa regresi performa.
+   *Kriteria Kelulusan:* 100% test case (72 test case Fase 1 + Fase 2) wajib berstatus PASS tanpa regresi performa.
 
 4. **Jalankan Build Produksi:**
    ```powershell

@@ -97,15 +97,15 @@ export class CombatWarService {
       // Penyerang Menang (SUCCESS)
       const ratio = Math.min(1.0, fDef / fAtk);
       const gugurAtk = Math.min(
-        input.attackerTroops,
-        Math.round(input.attackerTroops * 0.20 * ratio)
+        attackerTroops,
+        Math.round(attackerTroops * 0.20 * ratio)
       );
       const gugurDef = Math.min(
-        input.defenderTroops,
-        Math.round(input.defenderTroops * 0.40)
+        defenderTroops,
+        Math.round(defenderTroops * 0.40)
       );
-      const survivorsAtk = Math.max(0, input.attackerTroops - gugurAtk);
-      const survivorsDef = Math.max(0, input.defenderTroops - gugurDef);
+      const survivorsAtk = Math.max(0, attackerTroops - gugurAtk);
+      const survivorsDef = Math.max(0, defenderTroops - gugurDef);
 
       const maxPanganLoot = Math.round(0.30 * panganDef);
       const maxEmasLoot = Math.round(0.25 * emasDef);
@@ -127,15 +127,15 @@ export class CombatWarService {
     } else {
       // Penyerang Terpukul Mundur (REPELLED)
       const gugurAtk = Math.min(
-        input.attackerTroops,
-        Math.round(input.attackerTroops * 0.50)
+        attackerTroops,
+        Math.round(attackerTroops * 0.50)
       );
       const gugurDef = Math.min(
-        input.defenderTroops,
-        Math.round(input.defenderTroops * 0.15)
+        defenderTroops,
+        Math.round(defenderTroops * 0.15)
       );
-      const survivorsAtk = Math.max(0, input.attackerTroops - gugurAtk);
-      const survivorsDef = Math.max(0, input.defenderTroops - gugurDef);
+      const survivorsAtk = Math.max(0, attackerTroops - gugurAtk);
+      const survivorsDef = Math.max(0, defenderTroops - gugurDef);
 
       return {
         status: "REPELLED",

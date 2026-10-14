@@ -407,4 +407,102 @@ describe("Fase 2: Geolocation Onsite Verifier & Anti-Spoofing Suite", () => {
     manager.cleanupExpired(t0 + 11_000);
     expect(manager.getPendingCount()).toBe(0);
   });
+
+  it("harus menolak pencocokan jika kode pairing kedua pihak bertentangan (TC-F2-42)", () => {
+    const manager = new EphemeralPairingManager(10_000);
+    const now = Date.now();
+
+    const payloadA: EphemeralGeoPayload = {
+      kingdomId: "k-code-1",
+      targetKingdomId: "k-code-2",
+      latitude: -7.803249,
+      longitude: 110.364404,
+      accuracyMeters: 10.0,
+      isMock: false,
+      deviceEntropyHash: "hash_code_1",
+      timestamp: now,
+      pairingCode: "KODE_ALPHA"
+    };
+
+    const payloadB: EphemeralGeoPayload = {
+      kingdomId: "k-code-2",
+      targetKingdomId: "k-code-1",
+      latitude: -7.803250,
+      longitude: 110.364405,
+      accuracyMeters: 10.0,
+      isMock: false,
+      deviceEntropyHash: "hash_code_2",
+      timestamp: now,
+      pairingCode: "KODE_BETA" // Kode bertentangan!
+    };
+
+    const resA = manager.submitHandshake(payloadA, now);
+    expect(resA.matched).toBe(false);
+
+    const resB = manager.submitHandshake(payloadB, now);
+    expect(resB.matched).toBe(false); // Tidak boleh cocok!
+    expect(manager.getPendingCount()).toBe(2);
+  });
+
+  it("harus fast-fail pada submitHandshake saat sensor tiruan atau GPS tidak akurat terdeteksi (TC-F2-43)", () => {
+    const manager = new EphemeralPairingManager(10_000);
+    const now = Date.now();
+
+    const mockPayload: EphemeralGeoPayload = {
+      kingdomId: "k-mock",
+      latitude: -7.803249,
+      longitude: 110.364404,
+      accuracyMeters: 10.0,
+      isMock: true,
+      deviceEntropyHash: "hash_mock",
+      timestamp: now,
+      pairingCode: "SUMPAH_MOCK"
+    };
+
+    const res = manager.submitHandshake(mockPayload, now);
+    expect(res.matched).toBe(true);
+    expect(res.result?.verified).toBe(false);
+    expect(res.result?.rejectionReason).toBe("MOCK_LOCATION_DETECTED");
+    expect(manager.getPendingCount()).toBe(0); // Tidak disimpan di RAM
+  });
+
+  it("harus memusnahkan koordinat memori saat cancelPending dan manager.clear() (TC-F2-44)", () => {
+    const manager = new EphemeralPairingManager(10_000);
+    const now = Date.now();
+
+    const payload: EphemeralGeoPayload = {
+      kingdomId: "k-cancel",
+      latitude: -7.803249,
+      longitude: 110.364404,
+      accuracyMeters: 10.0,
+      isMock: false,
+      deviceEntropyHash: "hash_cancel",
+      timestamp: now,
+      pairingCode: "SUMPAH_CANCEL"
+    };
+
+    manager.submitHandshake(payload, now);
+    expect(manager.getPendingCount()).toBe(1);
+
+    // Cancel pending
+    const cancelled = manager.cancelPending("k-cancel");
+    expect(cancelled).toBe(true);
+    expect(manager.getPendingCount()).toBe(0);
+
+    // Re-insert and test clear() zeroization
+    const payload2: EphemeralGeoPayload = {
+      kingdomId: "k-clear",
+      latitude: -7.803249,
+      longitude: 110.364404,
+      accuracyMeters: 10.0,
+      isMock: false,
+      deviceEntropyHash: "hash_clear",
+      timestamp: now,
+      pairingCode: "SUMPAH_CLEAR"
+    };
+
+    manager.submitHandshake(payload2, now);
+    manager.clear();
+    expect(manager.getPendingCount()).toBe(0);
+  });
 });

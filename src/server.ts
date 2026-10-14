@@ -19,8 +19,9 @@ const JWT_SECRET =
 export function createGameServer() {
   const httpServer = createServer(
     (req: IncomingMessage, res: ServerResponse) => {
-      // Basic Health Check Endpoint
-      if (req.url === "/health" || req.url === "/api/health") {
+      // Basic Health Check Endpoint (query-safe)
+      const urlPath = req.url ? req.url.split("?")[0] : "/";
+      if (urlPath === "/health" || urlPath === "/api/health") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({

@@ -99,6 +99,51 @@ export class GeolocationOnsiteVerifier {
   }
 
   /**
+   * Validates single payload integrity (anti-spoofing, accuracy bounds, freshness).
+   * Returns verification failure result if invalid, or null if valid.
+   */
+  public static validateSinglePayload(
+    payload: EphemeralGeoPayload,
+    nowMs: number = Date.now()
+  ): VerificationResult | null {
+    if (payload.isMock) {
+      payload.latitude = 0.0;
+      payload.longitude = 0.0;
+      return { verified: false, distanceMeters: -1, rejectionReason: "MOCK_LOCATION_DETECTED" };
+    }
+
+    if (
+      !Number.isFinite(payload.accuracyMeters) ||
+      payload.accuracyMeters > this.MAX_ACCEPTABLE_ACCURACY_METERS ||
+      payload.accuracyMeters < 0 ||
+      !Number.isFinite(payload.latitude) ||
+      !Number.isFinite(payload.longitude) ||
+      payload.latitude < -90 ||
+      payload.latitude > 90 ||
+      payload.longitude < -180 ||
+      payload.longitude > 180
+    ) {
+      payload.latitude = 0.0;
+      payload.longitude = 0.0;
+      return { verified: false, distanceMeters: -1, rejectionReason: "ACCURACY_INSUFFICIENT" };
+    }
+
+    if (Math.abs(nowMs - payload.timestamp) > this.MAX_ALLOWED_TIMESTAMP_AGE_MS) {
+      payload.latitude = 0.0;
+      payload.longitude = 0.0;
+      return { verified: false, distanceMeters: -1, rejectionReason: "TIMESTAMP_STALE" };
+    }
+
+    if (this.isTeleportationAnomaly(payload)) {
+      payload.latitude = 0.0;
+      payload.longitude = 0.0;
+      return { verified: false, distanceMeters: -1, rejectionReason: "TELEPORTATION_SPOOF_DETECTED" };
+    }
+
+    return null;
+  }
+
+  /**
    * Verifies mutual physical presence of two payloads and immediately zeroizes coordinates.
    */
   public static verifyAndZeroize(
@@ -106,52 +151,26 @@ export class GeolocationOnsiteVerifier {
     payloadB: EphemeralGeoPayload,
     nowMs: number = Date.now()
   ): VerificationResult {
-    // 1. Audit Anti-Spoofing & Sensor Mocking (FR-18)
-    if (payloadA.isMock || payloadB.isMock) {
+    // 1. Audit Single-Payload Anti-Spoofing & Sensor Mocking (FR-18)
+    const checkA = this.validateSinglePayload(payloadA, nowMs);
+    if (checkA) {
       this.zeroizePayloads(payloadA, payloadB);
-      return { verified: false, distanceMeters: -1, rejectionReason: "MOCK_LOCATION_DETECTED" };
+      return checkA;
     }
 
-    if (
-      !Number.isFinite(payloadA.accuracyMeters) ||
-      !Number.isFinite(payloadB.accuracyMeters) ||
-      payloadA.accuracyMeters > this.MAX_ACCEPTABLE_ACCURACY_METERS ||
-      payloadB.accuracyMeters > this.MAX_ACCEPTABLE_ACCURACY_METERS ||
-      payloadA.accuracyMeters < 0 ||
-      payloadB.accuracyMeters < 0 ||
-      !Number.isFinite(payloadA.latitude) ||
-      !Number.isFinite(payloadA.longitude) ||
-      !Number.isFinite(payloadB.latitude) ||
-      !Number.isFinite(payloadB.longitude) ||
-      payloadA.latitude < -90 ||
-      payloadA.latitude > 90 ||
-      payloadB.latitude < -90 ||
-      payloadB.latitude > 90 ||
-      payloadA.longitude < -180 ||
-      payloadA.longitude > 180 ||
-      payloadB.longitude < -180 ||
-      payloadB.longitude > 180
-    ) {
+    const checkB = this.validateSinglePayload(payloadB, nowMs);
+    if (checkB) {
       this.zeroizePayloads(payloadA, payloadB);
-      return { verified: false, distanceMeters: -1, rejectionReason: "ACCURACY_INSUFFICIENT" };
+      return checkB;
     }
 
-    // 2. Audit Replay Attack & Timestamp Freshness
-    if (
-      Math.abs(nowMs - payloadA.timestamp) > this.MAX_ALLOWED_TIMESTAMP_AGE_MS ||
-      Math.abs(nowMs - payloadB.timestamp) > this.MAX_ALLOWED_TIMESTAMP_AGE_MS
-    ) {
-      this.zeroizePayloads(payloadA, payloadB);
-      return { verified: false, distanceMeters: -1, rejectionReason: "TIMESTAMP_STALE" };
-    }
-
-    // 3. Audit Synchronous Window (|Delta t| <= 10s)
+    // 2. Audit Synchronous Window (|Delta t| <= 10s)
     if (Math.abs(payloadA.timestamp - payloadB.timestamp) > this.MAX_ALLOWED_TIMESTAMP_DELTA_MS) {
       this.zeroizePayloads(payloadA, payloadB);
       return { verified: false, distanceMeters: -1, rejectionReason: "TIMESTAMP_DELTA_EXCEEDED" };
     }
 
-    // 4. Audit Anti-Self-Pairing Hardware Entropy (mencegah duplikasi di 1 gawai)
+    // 3. Audit Anti-Self-Pairing Hardware Entropy (mencegah duplikasi di 1 gawai)
     if (
       payloadA.deviceEntropyHash &&
       payloadB.deviceEntropyHash &&
@@ -161,13 +180,7 @@ export class GeolocationOnsiteVerifier {
       return { verified: false, distanceMeters: -1, rejectionReason: "SELF_PAIRING_DETECTED" };
     }
 
-    // 5. Teleportation / Velocity Jump Heuristic for Kingdom A & Kingdom B
-    if (this.isTeleportationAnomaly(payloadA) || this.isTeleportationAnomaly(payloadB)) {
-      this.zeroizePayloads(payloadA, payloadB);
-      return { verified: false, distanceMeters: -1, rejectionReason: "TELEPORTATION_SPOOF_DETECTED" };
-    }
-
-    // 6. Calculate Haversine Distance
+    // 4. Calculate Haversine Distance
     const distanceMeters = this.calculateHaversineDistance(
       payloadA.latitude,
       payloadA.longitude,
@@ -175,16 +188,16 @@ export class GeolocationOnsiteVerifier {
       payloadB.longitude
     );
 
-    // Record coarse history for future velocity checks (keeps only rounded timestamp & coords)
+    // Record coarse history for future velocity checks
     this.recordHistory(payloadA);
     this.recordHistory(payloadB);
 
-    // 7. ZERO-KNOWLEDGE PROTOCOL: Zeroize memory variables immediately
+    // 5. ZERO-KNOWLEDGE PROTOCOL: Zeroize memory variables immediately (FR-17)
     this.zeroizePayloads(payloadA, payloadB);
 
     const roundedDistance = Number(distanceMeters.toFixed(2));
 
-    // 8. Evaluate 200-meter threshold
+    // 6. Evaluate 200-meter threshold
     if (roundedDistance <= this.MAX_ALLOWED_DISTANCE_METERS) {
       return {
         verified: true,
@@ -286,6 +299,15 @@ export class EphemeralPairingManager {
   } {
     this.cleanupExpired(nowMs);
 
+    // 1. Fast-fail single payload if sensor is spoofed, inaccurate, stale, or impossible velocity
+    const singleCheck = GeolocationOnsiteVerifier.validateSinglePayload(payload, nowMs);
+    if (singleCheck) {
+      return {
+        matched: true,
+        result: singleCheck
+      };
+    }
+
     // Look for matching partner
     // A pair can match by:
     // 1. Same allianceId (if already defined)
@@ -298,6 +320,24 @@ export class EphemeralPairingManager {
 
       // Never match with oneself
       if (partner.kingdomId === payload.kingdomId) {
+        continue;
+      }
+
+      // If both provided pairing codes and they do not match, skip
+      if (
+        partner.pairingCode &&
+        payload.pairingCode &&
+        partner.pairingCode !== payload.pairingCode
+      ) {
+        continue;
+      }
+
+      // If both provided allianceIds and they do not match, skip
+      if (
+        partner.allianceId &&
+        payload.allianceId &&
+        partner.allianceId !== payload.allianceId
+      ) {
         continue;
       }
 
@@ -348,6 +388,9 @@ export class EphemeralPairingManager {
       };
     }
 
+    // Ensure any stale previous pending request from this kingdom is cancelled and zeroized
+    this.cancelPending(payload.kingdomId);
+
     // No partner found yet; store this request in ephemeral pool
     const key = `${payload.kingdomId}_${payload.allianceId ?? payload.pairingCode ?? "pending"}`;
     this.pendingRequests.set(key, {
@@ -356,6 +399,22 @@ export class EphemeralPairingManager {
     });
 
     return { matched: false };
+  }
+
+  /**
+   * Cancel and zeroize any pending requests for a specific kingdom (e.g. on socket disconnect).
+   */
+  public cancelPending(kingdomId: string): boolean {
+    let cancelled = false;
+    for (const [key, entry] of this.pendingRequests.entries()) {
+      if (entry.payload.kingdomId === kingdomId) {
+        entry.payload.latitude = 0.0;
+        entry.payload.longitude = 0.0;
+        this.pendingRequests.delete(key);
+        cancelled = true;
+      }
+    }
+    return cancelled;
   }
 
   public cleanupExpired(nowMs: number = Date.now()): void {
@@ -374,6 +433,10 @@ export class EphemeralPairingManager {
   }
 
   public clear(): void {
+    for (const entry of this.pendingRequests.values()) {
+      entry.payload.latitude = 0.0;
+      entry.payload.longitude = 0.0;
+    }
     this.pendingRequests.clear();
   }
 }

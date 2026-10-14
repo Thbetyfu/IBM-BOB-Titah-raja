@@ -35,7 +35,9 @@ export class CalamityAndBossEngine {
     prng: () => number = Math.random
   ): CalamityEvaluationResult {
     // 1. Dinamika Harmoni Alam: Decay alami -1.0 per musim + dampak titah (+10.0 per poin efek)
-    const rawHarmony = currentHarmony + (10.0 * efekLingkunganTitah) - 1.0;
+    const safeHarmony = Number.isFinite(currentHarmony) ? currentHarmony : 50.0;
+    const safeEfek = Number.isFinite(efekLingkunganTitah) ? efekLingkunganTitah : 0.0;
+    const rawHarmony = safeHarmony + (10.0 * safeEfek) - 1.0;
     const newHarmony = Math.max(0.0, Math.min(100.0, Number(rawHarmony.toFixed(2))));
 
     // 2. Probabilitas Bencana Ekologis Dinamis Kuadratik
@@ -129,7 +131,8 @@ export class BossEncounterStateMachine {
    * Evaluates realm condition at the beginning of Season 20.
    */
   public evaluateSeason20(averageHarmony: number): BossSeason20Evaluation {
-    if (averageHarmony < 50.0) {
+    const safeHarmony = Number.isFinite(averageHarmony) ? averageHarmony : 0.0;
+    if (safeHarmony < 50.0) {
       this.isSpawned = true;
       this.isDefeated = false;
       this.bossHp = this.maxHp;
@@ -159,27 +162,19 @@ export class BossEncounterStateMachine {
     alliedTroopsTotal: number,
     prng: () => number = Math.random
   ): BossAttackResult {
-    if (!this.isSpawned || this.isDefeated || this.bossHp <= 0) {
+    const safeTroops = Math.max(0, Math.floor(Number(alliedTroopsTotal) || 0));
+    if (!this.isSpawned || this.isDefeated || this.bossHp <= 0 || safeTroops <= 0) {
       return {
         damageDealt: 0,
         bossHpRemaining: this.bossHp,
-        defeated: this.isDefeated,
-        retaliationCasualties: 0
-      };
-    }
-
-    if (alliedTroopsTotal <= 0) {
-      return {
-        damageDealt: 0,
-        bossHpRemaining: this.bossHp,
-        defeated: false,
+        defeated: this.isDefeated || this.bossHp <= 0,
         retaliationCasualties: 0
       };
     }
 
     // Variasi acak seragam damage [-0.05, +0.05] sesuai PRD Bab 5.6 (xi_boss ~ U(-0.05, +0.05))
     const xi = (prng() - 0.5) * 0.10;
-    const damage = Math.max(1, Math.round(alliedTroopsTotal * 1.5 * (1.0 + xi)));
+    const damage = Math.max(1, Math.round(safeTroops * 1.5 * (1.0 + xi)));
     this.bossHp = Math.max(0, this.bossHp - damage);
 
     if (this.bossHp === 0) {
@@ -188,8 +183,8 @@ export class BossEncounterStateMachine {
 
     // Balasan semburan air naga: 25% pasukan sekutu gugur
     const retaliationCasualties = Math.min(
-      alliedTroopsTotal,
-      Math.round(alliedTroopsTotal * 0.25)
+      safeTroops,
+      Math.round(safeTroops * 0.25)
     );
 
     return {
