@@ -4,7 +4,7 @@
 **Target Kompetisi:** IBM Code the Future 2026 (Beginner Track)  
 **Dokumen Induk:** `doc/PRD.md` (v2.0), `doc/SRS.md` (v2.1), `doc/SDD.md` (v2.1)  
 **Terakhir Diperbarui:** 14 Oktober 2026  
-**Status Eksekusi:** Sprint 0 Selesai (100%), Masuk Sprint 1  
+**Status Eksekusi:** Sprint 0 & Sprint 1 Selesai (100%), Siap Masuk Sprint 2  
 
 ---
 
@@ -60,8 +60,8 @@ Proyek ini dibagi menjadi **6 Fase Strategis** yang terukur secara bertahap, men
 
 ---
 
-### 🟡 FASE 1: Sprint 1 — Backend Core Simulation Engine & Data Persistence
-* **Status:** **PENDING / READY TO START**
+### 🟢 FASE 1: Sprint 1 — Backend Core Simulation Engine & Data Persistence
+* **Status:** **COMPLETED (100%)**
 * **Estimasi Waktu:** Hari ke-1 (6–8 Jam Kerja)
 * **Fokus:** Fondasi runtime simulasi backend, struktur memori ECS, perhitungan ekonomi makro, dan integrasi basis data PostgreSQL.
 * **Tag Git Utama:** `[bob:scaffold]`, `[bob:algorithm]`

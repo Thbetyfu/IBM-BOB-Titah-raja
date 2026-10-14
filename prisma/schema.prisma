@@ -1,0 +1,216 @@
+// datasource and generator definition
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Player {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username             String    @unique @db.VarChar(50)
+  email                String    @unique @db.VarChar(100)
+  passwordHash         String    @map("password_hash") @db.VarChar(255)
+  ageConfirmed         Boolean   @default(false) @map("age_confirmed")
+  ageConfirmedAt       DateTime? @map("age_confirmed_at") @db.Timestamptz
+  totalReincarnations  Int       @default(0) @map("total_reincarnations")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  lastLogin            DateTime  @default(now()) @map("last_login") @db.Timestamptz
+
+  kingdoms             Kingdom[]
+  legacies             Legacy[]
+
+  @@map("player")
+}
+
+model World {
+  id                   String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  realmCode            String     @unique @map("realm_code") @db.VarChar(30)
+  name                 String     @db.VarChar(100)
+  currentSeason        Int        @default(1) @map("current_season")
+  maxSeasons           Int        @default(20) @map("max_seasons")
+  seasonDurationSec    Int        @default(45) @map("season_duration_sec")
+  randomSeed           BigInt     @map("random_seed")
+  status               String     @default("ACTIVE") @db.VarChar(20)
+  bossName             String     @default("Naga Banjir Sang Hyang Tuntang") @map("boss_name") @db.VarChar(100)
+  bossHp               Int        @default(500) @map("boss_hp")
+  bossMaxHp            Int        @default(500) @map("boss_max_hp")
+  bossSpawned          Boolean    @default(false) @map("boss_spawned")
+  bossDefeated         Boolean    @default(false) @map("boss_defeated")
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  kingdoms             Kingdom[]
+  alliances            Alliance[]
+
+  @@map("world")
+}
+
+model Kingdom {
+  id                   String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  worldId              String     @map("world_id") @db.Uuid
+  playerId             String?    @map("player_id") @db.Uuid
+  name                 String     @db.VarChar(100)
+  incarnationNo        Int        @default(1) @map("incarnation_no")
+  pangan               Int        @default(150)
+  emas                 Int        @default(100)
+  pasukan              Int        @default(15)
+  pajak                Int        @default(15)
+  balaiWanuaLv         Int        @default(1) @map("balai_wanua_lv")
+  lumbungLv            Int        @default(1) @map("lumbung_lv")
+  posRondaLv           Int        @default(1) @map("pos_ronda_lv")
+  kapasitasLumbung     Int        @default(500) @map("kapasitas_lumbung")
+  kepuasan             Decimal    @default(65.00) @db.Decimal(5, 2)
+  harmoni              Decimal    @default(70.00) @db.Decimal(5, 2)
+  ancamanBandit        Decimal    @default(20.00) @map("ancaman_bandit") @db.Decimal(5, 2)
+  rebelStreak          Int        @default(0) @map("rebel_streak")
+  starvationStreak     Int        @default(0) @map("starvation_streak")
+  isFallen             Boolean    @default(false) @map("is_fallen")
+  annexedByKingdomId   String?    @map("annexed_by_kingdom_id") @db.Uuid
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  world                World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  player               Player?    @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  annexedBy            Kingdom?   @relation("KingdomAnnexation", fields: [annexedByKingdomId], references: [id])
+  annexedKingdoms      Kingdom[]  @relation("KingdomAnnexation")
+
+  agents               Agent[]
+  decrees              Decree[]
+  allianceMembers      AllianceMember[]
+  attacksSent          Attack[]   @relation("AttackerKingdom")
+  attacksReceived      Attack[]   @relation("DefenderKingdom")
+  expeditions          Expedition[]
+
+  @@index([worldId, playerId], name: "idx_kingdom_world_player")
+  @@map("kingdom")
+}
+
+model Agent {
+  id                   String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  kingdomId            String     @map("kingdom_id") @db.Uuid
+  name                 String     @db.VarChar(80)
+  role                 String     @default("petani") @db.VarChar(30)
+  lapar                Decimal    @default(0.200) @db.Decimal(4, 3)
+  aman                 Decimal    @default(0.700) @db.Decimal(4, 3)
+  adil                 Decimal    @default(0.600) @db.Decimal(4, 3)
+  serakah              Decimal    @default(0.300) @db.Decimal(4, 3)
+  berani               Decimal    @default(0.400) @db.Decimal(4, 3)
+  trust                Decimal    @default(0.500) @db.Decimal(4, 3)
+  currentAction        String     @default("bekerja") @map("current_action") @db.VarChar(30)
+  updatedAt            DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  kingdom              Kingdom    @relation(fields: [kingdomId], references: [id], onDelete: Cascade)
+
+  @@index([kingdomId], name: "idx_agent_kingdom")
+  @@index([kingdomId, currentAction], name: "idx_agent_action")
+  @@map("agent")
+}
+
+model Decree {
+  id                   String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  kingdomId            String     @map("kingdom_id") @db.Uuid
+  season               Int
+  sourceType           String     @map("source_type") @db.VarChar(20)
+  rawText              String     @map("raw_text") @db.Text
+  efekKeadilan         Decimal    @default(0.000) @map("efek_keadilan") @db.Decimal(4, 3)
+  efekKesejahteraan    Decimal    @default(0.000) @map("efek_kesejahteraan") @db.Decimal(4, 3)
+  efekKeamanan         Decimal    @default(0.000) @map("efek_keamanan") @db.Decimal(4, 3)
+  efekLingkungan       Decimal    @default(0.000) @map("efek_lingkungan") @db.Decimal(4, 3)
+  pajakDelta           Int        @default(0) @map("pajak_delta")
+  biayaEmas            Int        @default(0) @map("biaya_emas")
+  category             String     @default("sosial") @db.VarChar(30)
+  aiConfidence         Decimal?   @default(1.000) @map("ai_confidence") @db.Decimal(4, 3)
+  isValid              Boolean    @default(true) @map("is_valid")
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  kingdom              Kingdom    @relation(fields: [kingdomId], references: [id], onDelete: Cascade)
+
+  @@index([kingdomId, season], name: "idx_decree_kingdom_season")
+  @@map("decree")
+}
+
+model Alliance {
+  id                   String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  worldId              String           @map("world_id") @db.Uuid
+  name                 String           @unique @db.VarChar(100)
+  bannerEmblem         String?          @default("garuda_emas") @map("banner_emblem") @db.VarChar(50)
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  world                World            @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  members              AllianceMember[]
+
+  @@map("alliance")
+}
+
+model AllianceMember {
+  allianceId           String    @map("alliance_id") @db.Uuid
+  kingdomId            String    @map("kingdom_id") @db.Uuid
+  onsiteVerified       Boolean   @default(false) @map("onsite_verified")
+  verifiedDistanceM    Decimal?  @map("verified_distance_m") @db.Decimal(6, 2)
+  verifiedAt           DateTime? @map("verified_at") @db.Timestamptz
+  deviceSignatureHash  String?   @map("device_signature_hash") @db.VarChar(128)
+
+  alliance             Alliance  @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  kingdom              Kingdom   @relation(fields: [kingdomId], references: [id], onDelete: Cascade)
+
+  @@id([allianceId, kingdomId])
+  @@map("alliance_member")
+}
+
+model Attack {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  attackerKingdomId    String    @map("attacker_kingdom_id") @db.Uuid
+  defenderKingdomId    String    @map("defender_kingdom_id") @db.Uuid
+  season               Int
+  pasukanDikirim       Int       @map("pasukan_dikirim")
+  pasukanTewas         Int       @default(0) @map("pasukan_tewas")
+  jarahanPangan        Int       @default(0) @map("jarahan_pangan")
+  jarahanEmas          Int       @default(0) @map("jarahan_emas")
+  status               String    @db.VarChar(20)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  attacker             Kingdom   @relation("AttackerKingdom", fields: [attackerKingdomId], references: [id])
+  defender             Kingdom   @relation("DefenderKingdom", fields: [defenderKingdomId], references: [id])
+
+  @@index([season], name: "idx_attack_season")
+  @@map("attack")
+}
+
+model Legacy {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  playerId             String    @map("player_id") @db.Uuid
+  kingdomName          String    @map("kingdom_name") @db.VarChar(100)
+  incarnationNo        Int       @map("incarnation_no")
+  seasonsSurvived      Int       @map("seasons_survived")
+  peakSatisfaction     Decimal   @map("peak_satisfaction") @db.Decimal(5, 2)
+  finalTreasuryEmas    Int       @map("final_treasury_emas")
+  causeOfFall          String    @map("cause_of_fall") @db.VarChar(50)
+  finalLegacyScore     Int       @map("final_legacy_score")
+  ancestralKarmaPoints Int       @default(0) @map("ancestral_karma_points")
+  recordedAt           DateTime  @default(now()) @map("recorded_at") @db.Timestamptz
+
+  player               Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId], name: "idx_legacy_player")
+  @@map("legacy")
+}
+
+model Expedition {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  kingdomId            String    @map("kingdom_id") @db.Uuid
+  season               Int
+  doctrine             String    @db.VarChar(20)
+  pasukanDikirim       Int       @map("pasukan_dikirim")
+  pasukanTewas         Int       @default(0) @map("pasukan_tewas")
+  panganDidapat        Int       @default(0) @map("pangan_didapat")
+  emasDidapat          Int       @default(0) @map("emas_didapat")
+  wargaDidapat         Int       @default(0) @map("warga_didapat")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  kingdom              Kingdom   @relation(fields: [kingdomId], references: [id], onDelete: Cascade)
+
+  @@index([kingdomId], name: "idx_expedition_kingdom")
+  @@map("expedition")
+}

@@ -1,0 +1,39 @@
+{
+  "name": "titah-rakyat-backend",
+  "version": "1.0.0",
+  "description": "Titah Rakyat: Sovereign of the Living Realm - Backend Core Simulation & Persistence Engine",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate"
+  },
+  "keywords": [
+    "multi-agent",
+    "simulation",
+    "ecs",
+    "postgresql",
+    "prisma",
+    "game-engine"
+  ],
+  "author": "Titah Rakyat Engineering Team",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/ws": "^8.5.12",
+    "prisma": "^5.22.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.2"
+  }
+}
