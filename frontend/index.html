@@ -8,6 +8,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      window.addEventListener('error', function(e) {
+        var box = document.getElementById('debug-error-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'debug-error-box';
+          box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#b91c1c;color:#fff;padding:16px;font-family:monospace;font-size:14px;white-space:pre-wrap;box-shadow:0 4px 20px rgba(0,0,0,0.8);max-height:50vh;overflow:auto;';
+          document.body.appendChild(box);
+        }
+        box.textContent += '\n[ERROR] ' + (e.message || e.error) + ' at ' + (e.filename || '') + ':' + (e.lineno || '');
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var box = document.getElementById('debug-error-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'debug-error-box';
+          box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#b91c1c;color:#fff;padding:16px;font-family:monospace;font-size:14px;white-space:pre-wrap;box-shadow:0 4px 20px rgba(0,0,0,0.8);max-height:50vh;overflow:auto;';
+          document.body.appendChild(box);
+        }
+        box.textContent += '\n[UNHANDLED REJECTION] ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason);
+      });
+    </script>
   </head>
   <body class="bg-wanua-dark text-slate-100 overflow-hidden select-none">
     <div id="root"></div>

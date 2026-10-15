@@ -43,6 +43,7 @@ export class BuildingSprites {
   }
 
   public updateLevels(balaiLv: number, lumbungLv: number, posRondaLv: number): void {
+    if (!this.balaiNode || !this.lumbungNode || !this.posRondaNode) return;
     this.balaiNode.removeChildren();
     this.renderBalaiWanua(this.balaiNode, balaiLv);
 

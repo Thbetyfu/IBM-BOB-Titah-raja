@@ -24,6 +24,8 @@ export class PixiApp {
   public calamity: CalamityEffects;
 
   // Camera viewport panning and zoom
+  public isInitialized: boolean = false;
+  private isDestroyed: boolean = false;
   private isDragging: boolean = false;
   private dragStart = { x: 0, y: 0 };
   private cameraPos = { x: 0, y: 0 };
@@ -47,15 +49,28 @@ export class PixiApp {
   }
 
   public async init(parent: HTMLElement): Promise<void> {
+    if (this.isDestroyed) return;
+
     await this.app.init({
-      resizeTo: parent,
+      resizeTo: parent || window,
       background: "#080c08",
       antialias: true,
       resolution: typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
       autoDensity: true
     });
 
-    parent.appendChild(this.app.canvas);
+    if (this.isDestroyed) {
+      try {
+        this.app.destroy(true, { children: true });
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    if (parent && this.app.canvas) {
+      parent.appendChild(this.app.canvas);
+    }
 
     // Build Layer Hierarchy per SDD Bab 5.2
     this.app.stage.addChild(this.stageContainer);
@@ -81,6 +96,7 @@ export class PixiApp {
 
     // Start Ticker Loop
     this.app.ticker.add((ticker: { deltaTime: number }) => {
+      if (this.isDestroyed) return;
       const deltaSec = ticker.deltaTime / 60;
       this.agents.update(deltaSec);
       this.calamity.update(deltaSec);
@@ -88,10 +104,13 @@ export class PixiApp {
       // Dynamic Y-sorting for isometric depth
       this.entityLayer.children.sort((a: Container, b: Container) => a.y - b.y);
     });
+
+    this.isInitialized = true;
   }
 
   private setupCameraListeners(): void {
     const canvas = this.app.canvas;
+    if (!canvas) return;
 
     canvas.addEventListener("pointerdown", (e: PointerEvent) => {
       this.isDragging = true;
@@ -144,6 +163,7 @@ export class PixiApp {
     bossHp: number,
     bossMaxHp: number
   ): void {
+    if (!this.isInitialized || this.isDestroyed) return;
     this.buildings.updateLevels(balaiLv, lumbungLv, posRondaLv);
     this.calamity.setWeather(weather);
     this.calamity.setBoss(bossActive, bossHp, bossMaxHp);
@@ -162,6 +182,15 @@ export class PixiApp {
   }
 
   public destroy(): void {
-    this.app.destroy(true, { children: true, texture: true });
+    this.isDestroyed = true;
+    this.isInitialized = false;
+    try {
+      if (this.app.canvas && this.app.canvas.parentElement) {
+        this.app.canvas.parentElement.removeChild(this.app.canvas);
+      }
+      this.app.destroy(true, { children: true, texture: true });
+    } catch {
+      // Ignore cleanup error gracefully
+    }
   }
 }

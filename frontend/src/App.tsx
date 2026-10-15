@@ -22,15 +22,17 @@ export const App: React.FC = () => {
   } = useGameStore();
 
   useEffect(() => {
-    let appInstance: PixiApp | null = null;
+    let isMounted = true;
 
     if (canvasRef.current && !pixiAppRef.current) {
-      appInstance = new PixiApp();
+      const appInstance = new PixiApp();
       pixiAppRef.current = appInstance;
 
-      appInstance.init(canvasRef.current).then(() => {
-        // Initial sync of building levels, weather, and boss
-        if (appInstance) {
+      appInstance
+        .init(canvasRef.current)
+        .then(() => {
+          if (!isMounted) return;
+          // Initial sync of building levels, weather, and boss
           appInstance.syncWithGameState(
             kingdom.balaiWanuaLv,
             kingdom.lumbungLv,
@@ -40,14 +42,17 @@ export const App: React.FC = () => {
             boss.hp,
             boss.maxHp
           );
-        }
-      });
+        })
+        .catch((err) => {
+          console.error("Gagal menginisialisasi PixiApp canvas:", err);
+        });
 
       // Connect WebSocket gateway client with auto-simulation fallback
       socketClient.connect();
     }
 
     return () => {
+      isMounted = false;
       socketClient.disconnect();
       if (pixiAppRef.current) {
         pixiAppRef.current.destroy();
@@ -58,7 +63,7 @@ export const App: React.FC = () => {
 
   // Sync Pixi scene when store updates
   useEffect(() => {
-    if (pixiAppRef.current) {
+    if (pixiAppRef.current && pixiAppRef.current.isInitialized) {
       pixiAppRef.current.syncWithGameState(
         kingdom.balaiWanuaLv,
         kingdom.lumbungLv,

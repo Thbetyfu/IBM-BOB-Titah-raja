@@ -95,7 +95,9 @@ export class CalamityEffects {
     this.bossActive = active;
     this.bossHp = Math.max(0, hp);
     this.bossMaxHp = maxHp;
-    this.bossLabelContainer.visible = active && this.bossHp > 0;
+    if (this.bossLabelContainer) {
+      this.bossLabelContainer.visible = active && this.bossHp > 0;
+    }
   }
 
   public update(deltaSec: number): void {
