@@ -5,6 +5,8 @@
   "type": "module",
   "main": "dist/src/index.js",
   "scripts": {
+    "dev": "npx tsx src/server.ts",
+    "start": "node dist/src/server.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
