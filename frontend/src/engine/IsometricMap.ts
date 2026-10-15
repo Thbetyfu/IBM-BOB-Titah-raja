@@ -337,6 +337,20 @@ export class IsometricMap {
       g.ellipse(cx - 15, cy - 5, c.scale * 1.1, c.scale * 0.6);
       g.fill({ color: 0xffffff, alpha: 0.06 });
     }
+
+    // Cozy Hearth Smoke Puffs from Balai Wanua Kitchen
+    const smokeBase = IsometricMap.gridToScreen(8.1, 4.8);
+    for (let p = 0; p < 4; p++) {
+      const puffT = (this.elapsedTime * 0.8 + p * 0.7) % 2.8;
+      const puffProgress = puffT / 2.8;
+      const px = smokeBase.x - 22 + Math.sin(puffT * 2 + p) * 6 + puffProgress * 10;
+      const py = smokeBase.y - 70 - puffProgress * 45;
+      const puffRadius = 4.5 + puffProgress * 8;
+      const puffAlpha = Math.max(0, 0.40 * (1 - puffProgress));
+
+      g.circle(px, py, puffRadius);
+      g.fill({ color: 0xf8f9fa, alpha: puffAlpha });
+    }
   }
 
   private renderTerritoryBorder(): void {

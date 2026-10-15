@@ -117,6 +117,7 @@ export class PixiApp {
       if (this.isDestroyed) return;
       const deltaSec = ticker.deltaTime / 60;
       this.isometricMap.update(deltaSec);
+      this.buildings.update(deltaSec);
       this.agents.update(deltaSec);
       this.calamity.update(deltaSec);
 

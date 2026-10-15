@@ -232,6 +232,94 @@ export class NusantaraAudioEngine {
     noise.start(now);
     noise.stop(now + durationSec);
   }
+
+  /**
+   * Traditional carved wooden slit drum (Kentongan) rhythmic strikes
+   */
+  public playKentongan(): void {
+    if (this.isMuted) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const strikes = [0.0, 0.12, 0.22, 0.30];
+    const freqs = [640, 680, 710, 750];
+
+    strikes.forEach((delay, idx) => {
+      const strikeTime = ctx.currentTime + delay;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freqs[idx], strikeTime);
+      osc.frequency.exponentialRampToValueAtTime(freqs[idx] * 0.72, strikeTime + 0.08);
+
+      gain.gain.setValueAtTime(0.001, strikeTime);
+      gain.gain.linearRampToValueAtTime(0.45, strikeTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, strikeTime + 0.09);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(strikeTime);
+      osc.stop(strikeTime + 0.10);
+    });
+  }
+
+  /**
+   * Bright, cheerful harvest chime (Panunggul -> Gulu -> Dada)
+   */
+  public playHarvestChime(): void {
+    if (this.isMuted) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const notes = [327.03, 392.44, 523.25]; // Dada, Lima, Panunggul tinggi
+    notes.forEach((freq, idx) => {
+      const strikeTime = ctx.currentTime + idx * 0.08;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, strikeTime);
+
+      gain.gain.setValueAtTime(0.001, strikeTime);
+      gain.gain.linearRampToValueAtTime(0.35, strikeTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, strikeTime + 0.55);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(strikeTime);
+      osc.stop(strikeTime + 0.60);
+    });
+  }
+
+  /**
+   * Cute bubbly squash-and-stretch pop sound for character/building clicks
+   */
+  public playCutePop(): void {
+    if (this.isMuted) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(780, now + 0.07);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.30, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.11);
+  }
 }
 
 export const audioEngine = new NusantaraAudioEngine();
