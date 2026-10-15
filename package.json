@@ -13,6 +13,7 @@
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:typecheck": "npm --prefix frontend run typecheck",
+    "benchmark": "npx tsx scripts/benchmark.ts",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"
   },
@@ -36,6 +37,7 @@
     "@types/node": "^22.7.5",
     "@types/ws": "^8.5.12",
     "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.2"
   }

@@ -4,7 +4,7 @@
 **Target Kompetisi:** IBM Code the Future 2026 (Beginner Track)  
 **Dokumen Induk:** `doc/PRD.md` (v2.0), `doc/SRS.md` (v2.1), `doc/SDD.md` (v2.1), dan `ROADMAP.md`  
 **Terakhir Diperbarui:** 15 Oktober 2026  
-**Status QA Fase 1, 2, & 3:** **100% PASSED (0 Open Bugs, Strict Type Check Clean, 4 Test Suites, 72 Automated Tests, Vite Production Bundle OK)**
+**Status QA Fase 1, 2, 3, & 4:** **100% PASSED (0 Open Bugs, Strict Type Check Clean, 5 Test Suites, 79 Automated Tests, Vite Production Bundle OK, Benchmark SLAs 100% Met)**
 
 ---
 
@@ -17,7 +17,7 @@
 | FASE 1 | Core Sim, ECS Engine, & PostgreSQL DDL | tests/sim.test.ts (25 TC) | PASSED  | 100.0%    | 0 OPEN   |
 | FASE 2 | WebSocket Gateway, AI NLP, & Geolocation| geo, ai, expedition (47 TC)| PASSED  | 100.0%    | 0 OPEN   |
 | FASE 3 | Frontend 2.5D Isometric & React HUD    | Pixi v8, React 18, Vite   | PASSED  | 100.0%    | 0 OPEN   |
-| FASE 4 | E2E Integration, Load, & Stress Testing| 4 Automated Test Suites   | PENDING | -         | 0 OPEN   |
+| FASE 4 | E2E Integration, Load, & Stress Testing| tests/e2e.test.ts (7 TC)  | PASSED  | 100.0%    | 0 OPEN   |
 | FASE 5 | Release Packaging, Audit & Pitch Deck  | Final Acceptance Audit    | PENDING | -         | 0 OPEN   |
 +──────────────────────────────────────────────────────────────────────────────────────────────────────────+
 ```
@@ -129,6 +129,22 @@
 | **TC-F3-16** | `GameSocketClient` Gateway | SRS FR-02, SDD 5.3 | NFR-02 | Koneksi WSS RFC 6455 dengan fallback simulasi realm lokal otonom saat offline/standalone preview. | **PASS** |
 | **TC-F3-17** | `Frontend Production Build` | SDD Bab 8 | KPI-3.2 | Verifikasi kompilasi `npm run typecheck` bersih (0 error) dan `npm run build` Vite bundling menghasilkan aset statis tanpa hambatan. | **PASS** |
 
+### 2.4 Matriks Pengujian Fase 4 (`tests/e2e.test.ts` & `scripts/benchmark.ts` - E2E & Benchmark)
+
+| Test ID | Komponen Uji | Kebutuhan Terkait | KPI / NFR | Prosedur & Asersi Verifikasi | Hasil Uji |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **TC-F4-01** | `HTTP Health Check` | SRS FR-01, SDD 7.1 | NFR-01 | Pengujian probe HTTP `/health` mengembalikan status 200 OK, service name, dan uptime valid. | **PASS** |
+| **TC-F4-02** | `Multi-Client Handshake` | SRS FR-02, SDD 5.3 | NFR-07 | Dua klien WebSocket bersamaan melakukan autentikasi handshake JWT HMAC-SHA256 valid. | **PASS** |
+| **TC-F4-03** | `Full Decree Pipeline` | SRS FR-05, FR-06 | FR-05, FR-06| Siklus penerbitan kartu titah via WS (`CARD_01`) dan titah bebas NLP AI dengan prompt guard. | **PASS** |
+| **TC-F4-04** | `Onsite Alliance & Combat` | SRS FR-16, FR-19 | KPI-2.3 | Jabat tangan jarak $\le 200\text{ m}$ (Prambanan ~35m), Zero-Knowledge memory audit, dan bantuan militer +50%. | **PASS** |
+| **TC-F4-05** | `Expedition 3 Doctrines` | SRS FR-22, SDD 4.5 | FR-22 | Resolusi lengkap 3 doktrin moral (`PILLAGE`, `CONQUER_FORCED`, `CONQUER_EMBRACED`) presisi matematis. | **PASS** |
+| **TC-F4-06** | `Boss Naga Musim 20 FSM` | SRS FR-15, SDD 4.6 | FR-15 | Skenario damai ($H \ge 50$) vs skenario murka ($H < 50$), gempuran koalisi aliansi, dan defeat boss. | **PASS** |
+| **TC-F4-07** | `20-Season World Loop` | SRS FR-04, FR-21 | FR-04, FR-21| Siklus lengkap 20 musim universal, konklusi realm, kalkulasi Skor Warisan (3330 poin) dan 6 Poin Karma. | **PASS** |
+| **TC-F4-08** | `Benchmark 10k ECS Agents` | SRS FR-10, SDD 4.2 | KPI-1.1 | Kecepatan evaluasi 10.000 agen: **1.378 ms** (Target: $< 100\text{ ms}$, Throughput: 7.25 juta agen/detik). | **PASS** |
+| **TC-F4-09** | `Benchmark Geodesic Throughput`| SRS FR-16, SDD 4.4 | KPI-2.3 | Throughput kalkulasi jarak Haversine: **7.056.043 ops/sec** (Target: $> 500.000\text{ ops/sec}$). | **PASS** |
+| **TC-F4-10** | `Benchmark Memory Wiper` | SRS FR-17, NFR-06 | NFR-06 | Latensi pemusnahan GPS di RAM: **0.613 ms** (Target: $< 50\text{ ms}$), 0 residu data koordinat. | **PASS** |
+| **TC-F4-11** | `Docker Multi-Container` | SDD Bab 8 | NFR-01 | Konfigurasi Dockerfile backend, frontend Nginx SPA, dan `docker-compose.yml` 4 layanan terisolasi. | **PASS** |
+
 ---
 
 ## 📊 3. Hasil Pengujian Unit Terotomatisasi (Automated Test Execution Log)
@@ -204,9 +220,19 @@ Command: npm test
      ✓ harus memutus panggilan LLM yang melewati batas waktu timeout keras 4.0 detik (TC-F2-18)
      ✓ harus menguraikan flag valid secara presisi saat menerima nilai string false atau 0 (TC-F2-45)
 
-Test Files:  4 passed (4)
-Tests:       72 passed (72)
-Duration:    1.29s
+  ✓ tests/e2e.test.ts (7 tests passed) 88ms
+    ✓ Fase 4: End-to-End (E2E) System Integration Suite (7 tests)
+      ✓ E2E-01: Health check endpoint HTTP harus mengembalikan status HEALTHY 200 OK (TC-F4-01)
+      ✓ E2E-02: Multi-client WebSocket handshake dengan autentikasi token JWT valid (TC-F4-02)
+      ✓ E2E-03: Alur penerbitan titah kartu tematik & titah NLP AI melalui WebSocket (TC-F4-03)
+      ✓ E2E-04: Verifikasi kedekatan fisik onsite (<= 200m), aliansi pertahanan, dan bantuan militer (TC-F4-04)
+      ✓ E2E-05: Pengerahan ekspedisi perbatasan desa rimba NPC dengan 3 doktrin moral (TC-F4-05)
+      ✓ E2E-06: Pertempuran koalisi aliansi vs Boss Naga Banjir Sang Hyang Tuntang Musim 20 (TC-F4-06)
+      ✓ E2E-07: Siklus lengkap 20 Musim universal, transisi faksi, dan Skor Warisan Reinkarnasi (TC-F4-07)
+
+Test Files:  5 passed (5)
+Tests:       79 passed (79)
+Duration:    1.18s
 Exit Code:   0
 ```
 
@@ -427,6 +453,33 @@ Siklus Hidup Status Bug:
 * **Root Cause Analysis (RCA):** Sisa referensi impor saat refaktor komponen visual glassmorphism.
 * **Resolusi:** Memangkas seluruh unused imports secara menyeluruh sesuai prinsip Zero Dead Code Policy.
 * **Verifikasi:** `npm run build` dan `npm run typecheck` berhasil tanpa peringatan.
+
+#### 🔹 BUG-023: Unknown Type Assertion on Fetch JSON Response in E2E-01
+* **Status:** `[CLOSED]`
+* **Severity:** Low
+* **Komponen:** `tests/e2e.test.ts`
+* **Gejala:** Kompilasi `tsc --noEmit` melempar error TS18046: `'data' is of type 'unknown'`.
+* **Root Cause Analysis (RCA):** Fungsi bawaan `res.json()` pada TypeScript ES2020 mengembalikan nilai `Promise<unknown>`, sehingga akses atribut membutuhkan type casting.
+* **Resolusi:** Menambahkan type casting eksplisit: `(await res.json()) as { status: string; service: string; uptimeSeconds: number }`.
+* **Verifikasi:** Terverifikasi bersih dalam `npm run typecheck`.
+
+#### 🔹 BUG-024: Missing Mandatory `worldId` in DeterministicWorldOrchestrator E2E Instance
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `tests/e2e.test.ts`
+* **Gejala:** Kompilasi `tsc --noEmit` gagal dengan error TS2554: `Expected 1-4 arguments, but got 0`.
+* **Root Cause Analysis (RCA):** Instansiasi `new DeterministicWorldOrchestrator()` tidak menyertakan argumen wajib `worldId: string`.
+* **Resolusi:** Menyertakan argumen identifier realm yang valid: `new DeterministicWorldOrchestrator("realm-e2e")`.
+* **Verifikasi:** Lulus pengujian E2E-07 dan bersih dalam `npm run typecheck`.
+
+#### 🔹 BUG-025: Unclosed WebSocket Client Sockets in E2E AfterAll Hook
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `tests/e2e.test.ts`
+* **Gejala:** Hook `afterAll` vitest mengalami hang dan timeout setelah 10000ms saat menutup `server.close()`.
+* **Root Cause Analysis (RCA):** Socket klien WebSocket masih dalam status `OPEN`, mencegah `http.Server.close` memicu callback penyelesaian.
+* **Resolusi:** Menggunakan metode `socket.terminate()` pada setiap klien uji dan memanggil `server.closeAllConnections()` sebelum `server.close()`.
+* **Verifikasi:** Hook `afterAll` selesai instan dalam < 10ms tanpa timeout.
 
 ---
 

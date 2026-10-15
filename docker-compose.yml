@@ -1,0 +1,104 @@
+# ==============================================================================
+# Titah Rakyat: Sovereign of the Living Realm - Docker Compose Orchestration
+# Services: PostgreSQL 16, Redis 7, Backend Engine, Frontend Web Client
+# ==============================================================================
+
+version: "3.8"
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Database: PostgreSQL 16 Relational Storage (10 Tables, B-Tree Indexes)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: titah_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-titah_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-titah_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-titah_rakyat_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-titah_admin} -d ${POSTGRES_DB:-titah_rakyat_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - titah_network
+
+  # ---------------------------------------------------------------------------
+  # 2. Cache & Ephemeral Store: Redis 7
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: titah_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - titah_network
+
+  # ---------------------------------------------------------------------------
+  # 3. Game Server: Node.js 20 Backend (WebSocket Gateway & Simulation Engine)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: titah_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-titah_admin}:${POSTGRES_PASSWORD:-titah_secure_password_2026}@postgres:5432/${POSTGRES_DB:-titah_rakyat_db}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-titah_rakyat_development_secret_key_2026}
+      AI_API_KEY: ${AI_API_KEY:-mock_key_for_evaluation}
+    ports:
+      - "3001:3001"
+    networks:
+      - titah_network
+
+  # ---------------------------------------------------------------------------
+  # 4. Client Web: Nginx Reverse Proxy & Pixi.js 2.5D Client
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: titah_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - titah_network
+
+# -----------------------------------------------------------------------------
+# Networks & Volumes
+# -----------------------------------------------------------------------------
+networks:
+  titah_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
