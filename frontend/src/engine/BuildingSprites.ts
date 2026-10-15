@@ -354,13 +354,13 @@ export class BuildingSprites {
     const spritePath = `/assets/buildings/balai_wanua_lv${safeLv}.png`;
     const texture = Assets.get(spritePath);
     const sprite = texture ? new Sprite(texture) : Sprite.from(spritePath);
-    sprite.anchor.set(0.5, 0.74);
-    sprite.scale.set(0.35);
-    sprite.position.set(0, -6);
+    sprite.anchor.set(0.5, 0.82);
+    sprite.scale.set(0.38);
+    sprite.position.set(0, -2);
     node.addChild(sprite);
 
     // 6. Royal District Badge
-    this.addDistrictBadge(node, "Keraton Wanua", "Pusat Titah", safeLv, 0, -108);
+    this.addDistrictBadge(node, "Keraton Wanua", "Pusat Titah", safeLv, 0, -125);
   }
 
   /**
@@ -429,13 +429,13 @@ export class BuildingSprites {
     const spritePath = `/assets/buildings/lumbung_desa_lv${safeLv}.png`;
     const texture = Assets.get(spritePath);
     const sprite = texture ? new Sprite(texture) : Sprite.from(spritePath);
-    sprite.anchor.set(0.5, 0.80);
-    sprite.scale.set(0.31);
-    sprite.position.set(0, -4);
+    sprite.anchor.set(0.5, 0.86);
+    sprite.scale.set(0.35);
+    sprite.position.set(0, -2);
     node.addChild(sprite);
 
     // 6. Agricultural District Badge
-    this.addDistrictBadge(node, "Lumbung Desa", "Depot Pangan", safeLv, 0, -96);
+    this.addDistrictBadge(node, "Lumbung Desa", "Depot Pangan", safeLv, 0, -115);
   }
 
   /**
@@ -495,13 +495,13 @@ export class BuildingSprites {
     const spritePath = `/assets/buildings/pos_ronda_lv${safeLv}.png`;
     const texture = Assets.get(spritePath);
     const sprite = texture ? new Sprite(texture) : Sprite.from(spritePath);
-    sprite.anchor.set(0.5, 0.84);
-    sprite.scale.set(0.31);
-    sprite.position.set(0, -6);
+    sprite.anchor.set(0.5, 0.90);
+    sprite.scale.set(0.35);
+    sprite.position.set(0, -2);
     node.addChild(sprite);
 
     // 5. Frontier Bastion District Badge
-    this.addDistrictBadge(node, "Pos Ronda", "Benteng Perbatasan", safeLv, 0, -108);
+    this.addDistrictBadge(node, "Pos Ronda", "Benteng Perbatasan", safeLv, 0, -125);
   }
 
   /**

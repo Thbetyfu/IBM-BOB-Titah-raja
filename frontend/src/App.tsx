@@ -9,6 +9,8 @@ import { AllianceRadar } from "./components/AllianceRadar";
 import { ExpeditionModal } from "./components/ExpeditionModal";
 import { BossHpOverlay } from "./components/BossHpOverlay";
 import { CoupOverlay } from "./components/CoupOverlay";
+import { ReignsCourtDeck } from "./components/ReignsCourtDeck";
+import { KingdomActionBar } from "./components/KingdomActionBar";
 import { Maximize2 } from "lucide-react";
 
 export const App: React.FC = () => {
@@ -101,6 +103,8 @@ export const App: React.FC = () => {
 
       {/* Glassmorphism HUD Overlays */}
       <HudBar />
+      <ReignsCourtDeck />
+      <KingdomActionBar />
       <FactionSentiment />
       <DecreeModal />
       <AllianceRadar />

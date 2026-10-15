@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { REIGNS_DILEMMAS } from "../data/reignsDilemmas";
 
 export type WeatherState = "CERAH" | "PACEKLIK" | "BANJIR_BANDANG";
 
@@ -21,6 +22,7 @@ export interface KingdomData {
   lumbungLv: number;
   posRondaLv: number;
   balaiWanuaLv: number;
+  kapasitasLumbung: number;
   rebelStreak: number;
   starvationStreak: number;
   isFallen: boolean;
@@ -84,6 +86,9 @@ export interface GameStore {
   isAllianceRadarOpen: boolean;
   isExpeditionModalOpen: boolean;
   isCoupOverlayVisible: boolean;
+  isDilemmaCardVisible: boolean;
+  currentDilemmaIndex: number;
+  dilemmaNotification: string | null;
   audioMuted: boolean;
 
   // Actions
@@ -91,6 +96,7 @@ export interface GameStore {
   setAllianceRadarOpen: (open: boolean) => void;
   setExpeditionModalOpen: (open: boolean) => void;
   setCoupOverlayVisible: (visible: boolean) => void;
+  setDilemmaCardVisible: (visible: boolean) => void;
   toggleAudioMuted: () => void;
   deductBobCoins: (amount: number) => void;
   updateKingdom: (partial: Partial<KingdomData>) => void;
@@ -98,6 +104,10 @@ export interface GameStore {
   triggerDecreeAccepted: (entry: DecreeLogEntry) => void;
   triggerBossDamage: (damage: number) => void;
   triggerCoup: (cause: "COUP_DETAT" | "STARVATION" | "BANDIT_DESTRUCTION") => void;
+  resolveCurrentDilemma: (choice: "A" | "B") => void;
+  upgradeBuilding: (type: "balai" | "lumbung" | "pos_ronda") => { success: boolean; message: string };
+  hostVillageFeast: () => { success: boolean; message: string };
+  expandSubakFields: () => { success: boolean; message: string };
   restartGame: () => void;
 }
 
@@ -114,6 +124,7 @@ const INITIAL_KINGDOM: KingdomData = {
   lumbungLv: 2,
   posRondaLv: 1,
   balaiWanuaLv: 2,
+  kapasitasLumbung: 400,
   rebelStreak: 0,
   starvationStreak: 0,
   isFallen: false,
@@ -167,12 +178,16 @@ export const useGameStore = create<GameStore>((set: StoreSetter) => ({
   isAllianceRadarOpen: false,
   isExpeditionModalOpen: false,
   isCoupOverlayVisible: false,
+  isDilemmaCardVisible: true,
+  currentDilemmaIndex: 0,
+  dilemmaNotification: null,
   audioMuted: false,
 
   setDecreeModalOpen: (open: boolean) => set({ isDecreeModalOpen: open }),
   setAllianceRadarOpen: (open: boolean) => set({ isAllianceRadarOpen: open }),
   setExpeditionModalOpen: (open: boolean) => set({ isExpeditionModalOpen: open }),
   setCoupOverlayVisible: (visible: boolean) => set({ isCoupOverlayVisible: visible }),
+  setDilemmaCardVisible: (visible: boolean) => set({ isDilemmaCardVisible: visible }),
   toggleAudioMuted: () => set((s: GameStore) => ({ audioMuted: !s.audioMuted })),
 
   deductBobCoins: (amount: number) =>
@@ -307,6 +322,172 @@ export const useGameStore = create<GameStore>((set: StoreSetter) => ({
         }
       };
     }),
+
+  resolveCurrentDilemma: (choice: "A" | "B") =>
+    set((s: GameStore) => {
+      const dilemma = REIGNS_DILEMMAS[s.currentDilemmaIndex % REIGNS_DILEMMAS.length];
+      if (!dilemma) return s;
+
+      const choiceObj = choice === "A" ? dilemma.optionA : dilemma.optionB;
+      const eff = choiceObj.effects;
+
+      const newPangan = Math.max(0, s.kingdom.pangan + (eff.pangan ?? 0));
+      const newEmas = Math.max(0, s.kingdom.emas + (eff.emas ?? 0));
+      const newPasukan = Math.max(0, s.kingdom.pasukan + (eff.pasukan ?? 0));
+      const newKepuasan = Math.max(0, Math.min(100, s.kingdom.kepuasan + (eff.kepuasan ?? 0)));
+      const newHarmoni = Math.max(0, Math.min(100, s.kingdom.harmoni + (eff.harmoni ?? 0)));
+      const newAncaman = Math.max(0, Math.min(100, s.kingdom.ancamanBandit + (eff.ancamanBandit ?? 0)));
+
+      // Dynamic faction reaction
+      const updatedFactions = { ...s.factions };
+      if (dilemma.character.name.includes("Ki Wiro")) {
+        updatedFactions.kiWiro = {
+          mood: newKepuasan > 60 ? "PUAS" : newKepuasan < 35 ? "MARAH" : "CEMAS",
+          text: choiceObj.reactionQuote
+        };
+      } else if (dilemma.character.name.includes("Nyai Sendang")) {
+        updatedFactions.nyaiSendang = {
+          mood: newHarmoni >= 65 ? "HARMONIS" : newHarmoni < 40 ? "MURKA" : "TERANCAM",
+          text: choiceObj.reactionQuote
+        };
+      } else if (dilemma.character.name.includes("Si Garang")) {
+        updatedFactions.siGarang = {
+          mood: newAncaman > 40 ? "AGRESIF" : newPasukan > 30 ? "WASPADA" : "MENGINTAI",
+          text: choiceObj.reactionQuote
+        };
+      }
+
+      // Check coup conditions
+      if (newKepuasan <= 5) {
+        setTimeout(() => s.triggerCoup("COUP_DETAT"), 300);
+      } else if (newPangan <= 0 && s.kingdom.starvationStreak >= 2) {
+        setTimeout(() => s.triggerCoup("STARVATION"), 300);
+      } else if (newAncaman >= 95 && newPasukan <= 5) {
+        setTimeout(() => s.triggerCoup("BANDIT_DESTRUCTION"), 300);
+      }
+
+      return {
+        kingdom: {
+          ...s.kingdom,
+          pangan: newPangan,
+          emas: newEmas,
+          pasukan: newPasukan,
+          kepuasan: newKepuasan,
+          harmoni: newHarmoni,
+          ancamanBandit: newAncaman
+        },
+        factions: updatedFactions,
+        currentDilemmaIndex: (s.currentDilemmaIndex + 1) % REIGNS_DILEMMAS.length,
+        dilemmaNotification: choiceObj.toastNotice
+      };
+    }),
+
+  upgradeBuilding: (type: "balai" | "lumbung" | "pos_ronda") => {
+    let result = { success: false, message: "" };
+    set((s: GameStore) => {
+      if (type === "balai") {
+        if (s.kingdom.balaiWanuaLv >= 3) {
+          result = { success: false, message: "Balai Wanua sudah tingkat maksimum (Lv 3)!" };
+          return s;
+        }
+        if (s.kingdom.emas < 60 || s.kingdom.pangan < 30) {
+          result = { success: false, message: "Sumber daya kurang! Butuh 60 Emas & 30 Pangan." };
+          return s;
+        }
+        result = { success: true, message: `Balai Wanua ditingkatkan ke Lv ${s.kingdom.balaiWanuaLv + 1}!` };
+        return {
+          kingdom: {
+            ...s.kingdom,
+            balaiWanuaLv: s.kingdom.balaiWanuaLv + 1,
+            emas: s.kingdom.emas - 60,
+            pangan: s.kingdom.pangan - 30,
+            kepuasan: Math.min(100, s.kingdom.kepuasan + 10)
+          }
+        };
+      } else if (type === "lumbung") {
+        if (s.kingdom.lumbungLv >= 3) {
+          result = { success: false, message: "Lumbung Desa sudah tingkat maksimum (Lv 3)!" };
+          return s;
+        }
+        if (s.kingdom.emas < 45 || s.kingdom.pangan < 20) {
+          result = { success: false, message: "Sumber daya kurang! Butuh 45 Emas & 20 Pangan." };
+          return s;
+        }
+        result = { success: true, message: `Lumbung Desa ditingkatkan ke Lv ${s.kingdom.lumbungLv + 1}!` };
+        return {
+          kingdom: {
+            ...s.kingdom,
+            lumbungLv: s.kingdom.lumbungLv + 1,
+            emas: s.kingdom.emas - 45,
+            pangan: s.kingdom.pangan - 20,
+            kapasitasLumbung: s.kingdom.kapasitasLumbung + 150
+          }
+        };
+      } else if (type === "pos_ronda") {
+        if (s.kingdom.posRondaLv >= 3) {
+          result = { success: false, message: "Pos Ronda sudah tingkat maksimum (Lv 3)!" };
+          return s;
+        }
+        if (s.kingdom.emas < 40 || s.kingdom.pangan < 15) {
+          result = { success: false, message: "Sumber daya kurang! Butuh 40 Emas & 15 Pangan." };
+          return s;
+        }
+        result = { success: true, message: `Pos Ronda ditingkatkan ke Lv ${s.kingdom.posRondaLv + 1}!` };
+        return {
+          kingdom: {
+            ...s.kingdom,
+            posRondaLv: s.kingdom.posRondaLv + 1,
+            emas: s.kingdom.emas - 40,
+            pangan: s.kingdom.pangan - 15,
+            pasukan: s.kingdom.pasukan + 10,
+            ancamanBandit: Math.max(0, s.kingdom.ancamanBandit - 20)
+          }
+        };
+      }
+      return s;
+    });
+    return result;
+  },
+
+  hostVillageFeast: () => {
+    let result = { success: false, message: "" };
+    set((s: GameStore) => {
+      if (s.kingdom.pangan < 35) {
+        result = { success: false, message: "Pangan kurang! Butuh 35 gabah untuk kenduri." };
+        return s;
+      }
+      result = { success: true, message: "Kenduri Sedekah Bumi digelar! Kepuasan rakyat naik pesat!" };
+      return {
+        kingdom: {
+          ...s.kingdom,
+          pangan: s.kingdom.pangan - 35,
+          kepuasan: Math.min(100, s.kingdom.kepuasan + 25),
+          harmoni: Math.min(100, s.kingdom.harmoni + 10)
+        }
+      };
+    });
+    return result;
+  },
+
+  expandSubakFields: () => {
+    let result = { success: false, message: "" };
+    set((s: GameStore) => {
+      if (s.kingdom.emas < 30) {
+        result = { success: false, message: "Emas kurang! Butuh 30 keping emas untuk buka sawah." };
+        return s;
+      }
+      result = { success: true, message: "Sawah terasering baru dibuka! Hasil panen melimpah!" };
+      return {
+        kingdom: {
+          ...s.kingdom,
+          emas: s.kingdom.emas - 30,
+          pangan: s.kingdom.pangan + 50,
+          harmoni: Math.min(100, s.kingdom.harmoni + 15)
+        }
+      };
+    });
+    return result;
+  },
 
   restartGame: () =>
     set({

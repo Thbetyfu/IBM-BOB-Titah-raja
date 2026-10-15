@@ -6,13 +6,11 @@ import {
   Heart,
   Sparkles,
   Skull,
-  Scroll,
-  Radio,
-  Compass,
   Volume2,
   VolumeX,
   Clock,
-  CircleDollarSign
+  CircleDollarSign,
+  Radio
 } from "lucide-react";
 import { useGameStore } from "../store/useGameStore";
 import { audioEngine } from "../services/audioEngine";
@@ -26,9 +24,6 @@ export const HudBar: React.FC = () => {
     kingdom,
     audioMuted,
     toggleAudioMuted,
-    setDecreeModalOpen,
-    setAllianceRadarOpen,
-    setExpeditionModalOpen,
     allianceVerified
   } = useGameStore();
 
@@ -43,56 +38,64 @@ export const HudBar: React.FC = () => {
   const getPhaseDisplay = (phase: string) => {
     switch (phase) {
       case "PHASE_1_DECREE":
-        return "Fase 1: Musyawarah Titah";
+        return "Musyawarah Titah";
       case "PHASE_2_ACTION":
-        return "Fase 2: Aksi Warga & Kerja";
+        return "Aksi Rakyat & Kerja";
       case "PHASE_3_ECONOMY":
-        return "Fase 3: Panen & Kas Wanua";
+        return "Panen & Kas Wanua";
       case "PHASE_4_EVENT":
-        return "Fase 4: Peristiwa & Bencana";
+        return "Peristiwa & Bencana";
       case "PHASE_5_DYNASTY":
-        return "Fase 5: Resolusi Dinasti";
+        return "Resolusi Dinasti";
       default:
         return phase;
     }
   };
 
   return (
-    <header className="fixed top-2 left-2 right-2 z-30 flex flex-col md:flex-row items-center justify-between gap-2 p-2.5 rounded-2xl glass-panel-royal text-white text-xs select-none">
+    <header className="fixed top-2 left-2 right-2 z-30 flex flex-col md:flex-row items-center justify-between gap-2 p-2 sm:p-2.5 rounded-2xl bg-stone-950/90 border border-amber-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white text-xs select-none">
       {/* Realm & Season Identity */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-amber-900/60 to-amber-950/80 border border-amber-400/50 shadow-[0_0_12px_rgba(212,175,55,0.2)]">
           <span className="font-serif font-black tracking-wider text-amber-300 text-sm">
             {kingdom.namaWanua}
           </span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30 font-semibold">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30 font-bold">
             Musim {worldSeason} / 20
           </span>
         </div>
 
-        {/* Phase & 45s Countdown */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30">
+        {/* Phase & Universal 45s Tick Countdown */}
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30">
           <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-          <span className="text-emerald-300 font-medium hidden sm:inline">
+          <span className="text-emerald-300 font-medium hidden sm:inline text-[11px]">
             {getPhaseDisplay(activePhase)}
           </span>
           <span className="font-mono font-bold text-emerald-200 bg-emerald-900/60 px-1.5 py-0.5 rounded text-[11px]">
             {secondsRemaining}s
           </span>
         </div>
+
+        {/* Onsite Alliance Active Indicator */}
+        {allianceVerified && (
+          <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-cyan-950/60 border border-cyan-400/50 text-cyan-300 text-[10px] font-bold">
+            <Radio className="w-3 h-3 text-cyan-400 animate-spin" />
+            <span>Aliansi Onsite</span>
+          </div>
+        )}
       </div>
 
-      {/* Core Kingdom Resources */}
-      <div className="flex items-center flex-wrap gap-2.5 sm:gap-4 px-3 py-1 rounded-xl bg-stone-900/70 border border-stone-700/50">
+      {/* Core Kingdom Survival Pillars */}
+      <div className="flex items-center flex-wrap gap-2.5 sm:gap-4 px-3 py-1 rounded-xl bg-stone-900/70 border border-stone-800">
         {/* Pangan */}
-        <div className="flex items-center gap-1.5" title={`Pangan: ${kingdom.pangan} gabah`}>
+        <div className="flex items-center gap-1.5" title={`Cadangan Pangan: ${kingdom.pangan} gabah`}>
           <Wheat className="w-4 h-4 text-emerald-400" />
           <span className="font-bold text-stone-100">{kingdom.pangan}</span>
           <span className="text-stone-400 text-[10px]">Pangan</span>
         </div>
 
         {/* Emas */}
-        <div className="flex items-center gap-1.5" title={`Kas Kerajaan: ${kingdom.emas} keping emas`}>
+        <div className="flex items-center gap-1.5" title={`Kas Keraton: ${kingdom.emas} keping emas`}>
           <Coins className="w-4 h-4 text-amber-400" />
           <span className="font-bold text-amber-200">{kingdom.emas}</span>
           <span className="text-stone-400 text-[10px]">Emas</span>
@@ -146,61 +149,24 @@ export const HudBar: React.FC = () => {
           <Skull className="w-4 h-4 text-purple-400" />
           <span className="font-bold text-purple-200">{kingdom.ancamanBandit}%</span>
         </div>
-
-        {/* Bob Coins */}
-        <div className="flex items-center gap-1.5 pl-1 border-l border-stone-700" title="Bob Coins (Mata Uang Titah AI)">
-          <CircleDollarSign className="w-4 h-4 text-yellow-300" />
-          <span className="font-bold text-yellow-200">{bobCoins}</span>
-        </div>
       </div>
 
-      {/* Action Triggers & Audio Controls */}
+      {/* Currency & Audio Control */}
       <div className="flex items-center gap-2">
-        {/* Balairung Titah Button */}
-        <button
-          onClick={() => {
-            audioEngine.playBonangChime(1);
-            setDecreeModalOpen(true);
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 active:scale-95 text-white font-semibold shadow-md transition-all border border-amber-400/40"
+        {/* Bob Coins */}
+        <div
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-950/40 border border-amber-500/30"
+          title="Bob Coins (Mata Uang Titah AI)"
         >
-          <Scroll className="w-3.5 h-3.5" />
-          <span>Balairung Titah</span>
-        </button>
+          <CircleDollarSign className="w-4 h-4 text-yellow-300" />
+          <span className="font-bold text-yellow-200">{bobCoins}</span>
+          <span className="text-[10px] text-amber-400/80 hidden sm:inline">Coins</span>
+        </div>
 
-        {/* Radar Aliansi Button */}
-        <button
-          onClick={() => {
-            audioEngine.playBonangChime(3);
-            setAllianceRadarOpen(true);
-          }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold active:scale-95 transition-all border ${
-            allianceVerified
-              ? "bg-cyan-700/80 hover:bg-cyan-600 text-cyan-100 border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.4)]"
-              : "bg-stone-800/80 hover:bg-stone-700 text-stone-200 border-stone-600/50"
-          }`}
-        >
-          <Radio className={`w-3.5 h-3.5 ${allianceVerified ? "text-cyan-300 animate-spin" : "text-stone-400"}`} />
-          <span className="hidden sm:inline">Radar Aliansi</span>
-          {allianceVerified && <span className="text-[10px] text-cyan-200 font-bold">• Onsite</span>}
-        </button>
-
-        {/* Ekspedisi Button */}
-        <button
-          onClick={() => {
-            audioEngine.playKendang("thung");
-            setExpeditionModalOpen(true);
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-800/80 hover:bg-stone-700 active:scale-95 text-stone-200 font-semibold transition-all border border-stone-600/50"
-        >
-          <Compass className="w-3.5 h-3.5 text-orange-400" />
-          <span className="hidden sm:inline">Ekspedisi</span>
-        </button>
-
-        {/* Audio Toggle */}
+        {/* Audio Mute/Unmute */}
         <button
           onClick={handleToggleAudio}
-          className="p-1.5 rounded-xl bg-stone-800/80 hover:bg-stone-700 text-stone-300 transition-colors border border-stone-700"
+          className="p-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 hover:text-amber-300 transition-colors border border-stone-700"
           title={audioMuted ? "Bunyikan Gamelan" : "Bisukan Audio"}
         >
           {audioMuted ? <VolumeX className="w-4 h-4 text-stone-500" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
