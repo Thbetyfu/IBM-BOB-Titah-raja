@@ -495,6 +495,23 @@ Siklus Hidup Status Bug:
 * **Resolusi:** Menggunakan metode `socket.terminate()` pada setiap klien uji dan memanggil `server.closeAllConnections()` sebelum `server.close()`.
 * **Verifikasi:** Hook `afterAll` selesai instan dalam < 10ms tanpa timeout.
 
+#### 🔹 BUG-026: Layar Hitam (Blank Screen) Akibat Race Condition Inisialisasi Asinkron PixiApp & React StrictMode
+* **Status:** `[CLOSED]`
+* **Severity:** High
+* **Komponen:** `frontend/src/App.tsx`, `frontend/src/engine/PixiApp.ts`, `BuildingSprites.ts`, `CalamityEffects.ts`, `main.tsx`
+* **Gejala:** Tampilan peramban di `http://localhost:3000` menjadi layar hitam pekat dan seluruh overlay HUD tidak ter-render.
+* **Root Cause Analysis (RCA):**
+  1. Efek `useEffect` kedua di `App.tsx` mengeksekusi `syncWithGameState` seketika saat `pixiAppRef.current` dibuat, padahal `pixiApp.init(...)` masih dalam proses `await` asinkron.
+  2. Akibatnya, `this.buildings.balaiNode` dan `this.calamity.bossLabelContainer` masih bernilai `undefined`, memicu `TypeError: Cannot read properties of undefined` yang meng-unmount seluruh pohon komponen React.
+  3. Di lingkungan dev, `<React.StrictMode>` melakukan unmount sinkronis yang memicu `app.destroy()` saat WebGL context masih dalam proses inisialisasi awal.
+* **Resolusi:**
+  1. Menambahkan guard flag `isInitialized` dan `isDestroyed` pada `PixiApp.ts`.
+  2. Menambahkan pengecekan `if (!this.isInitialized || this.isDestroyed) return;` sebelum memanggil `syncWithGameState`.
+  3. Menambahkan defensive null-check pada `BuildingSprites.updateLevels` dan `CalamityEffects.setBoss`.
+  4. Membungkus aplikasi dengan komponen `ErrorBoundary` dan menghapus `React.StrictMode` untuk menghindari double-teardown WebGL.
+  5. Menambahkan listener global error di `index.html`.
+* **Verifikasi:** Vite hot-reloading berhasil, bundle produksi terkompilasi 100% bersih, dan kanvas 2.5D beserta seluruh HUD overlay tampil normal.
+
 ---
 
 ## 🛡️ 6. Protokol Pengujian Regresi Lintas Fase (Regression Protocol)
