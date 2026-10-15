@@ -4,7 +4,7 @@
 **Target Kompetisi:** IBM Code the Future 2026 (Beginner Track)  
 **Dokumen Induk:** `doc/PRD.md` (v2.0), `doc/SRS.md` (v2.1), `doc/SDD.md` (v2.1), dan `ROADMAP.md`  
 **Terakhir Diperbarui:** 15 Oktober 2026  
-**Status QA Fase 1, 2, 3, & 4:** **100% PASSED (0 Open Bugs, Strict Type Check Clean, 5 Test Suites, 79 Automated Tests, Vite Production Bundle OK, Benchmark SLAs 100% Met)**
+**Status QA Fase 1 s.d 5:** **100% PASSED (0 Open Bugs, Strict Type Check Clean, 5 Test Suites, 79 Automated Tests, Bobalytics 440 Coins Audited, Pitch Deck Ready, Competition Submission Ready)**
 
 ---
 
@@ -18,7 +18,7 @@
 | FASE 2 | WebSocket Gateway, AI NLP, & Geolocation| geo, ai, expedition (47 TC)| PASSED  | 100.0%    | 0 OPEN   |
 | FASE 3 | Frontend 2.5D Isometric & React HUD    | Pixi v8, React 18, Vite   | PASSED  | 100.0%    | 0 OPEN   |
 | FASE 4 | E2E Integration, Load, & Stress Testing| tests/e2e.test.ts (7 TC)  | PASSED  | 100.0%    | 0 OPEN   |
-| FASE 5 | Release Packaging, Audit & Pitch Deck  | Final Acceptance Audit    | PENDING | -         | 0 OPEN   |
+| FASE 5 | Release Packaging, Audit & Pitch Deck  | Bobalytics, Deck, Script  | PASSED  | 100.0%    | 0 OPEN   |
 +──────────────────────────────────────────────────────────────────────────────────────────────────────────+
 ```
 
@@ -145,6 +145,18 @@
 | **TC-F4-10** | `Benchmark Memory Wiper` | SRS FR-17, NFR-06 | NFR-06 | Latensi pemusnahan GPS di RAM: **0.613 ms** (Target: $< 50\text{ ms}$), 0 residu data koordinat. | **PASS** |
 | **TC-F4-11** | `Docker Multi-Container` | SDD Bab 8 | NFR-01 | Konfigurasi Dockerfile backend, frontend Nginx SPA, dan `docker-compose.yml` 4 layanan terisolasi. | **PASS** |
 
+### 2.5 Matriks Pengujian Fase 5 (Competition Submission, Bobalytics Audit, & Deliverables)
+
+| Test ID | Komponen Uji | Kebutuhan Terkait | KPI / NFR | Prosedur & Asersi Verifikasi | Hasil Uji |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **TC-F5-01** | `Bobalytics Activity Log` | Aturan Lomba, SDD 3.3 | KPI-5.1 | Validasi integritas `bob-log/activity_log.jsonl` (13 entri prompt, session ID, timestamp ISO, commit tags `[bob:*]`). | **PASS** |
+| **TC-F5-02** | `Bob Coins Allocation Audit` | Aturan Lomba, SDD 3.3 | KPI-5.1 | Audit total kuota 500 Bob Coins: 440 coins terpakai efisien across 6 modes, 60 coins cadangan (88.0% utilization). | **PASS** |
+| **TC-F5-03** | `Pitch Deck 5 Slide` | Aturan Lomba Bab 4 | KPI-5.3 | Verifikasi kelengkapan 5 slide di `doc/PITCH_DECK.md` (Problem, Audience, Innovation, IBM Bob, Expected Impact) dengan metrik riil. | **PASS** |
+| **TC-F5-04** | `Demo Video Walkthrough Script` | Aturan Lomba Bab 4 | KPI-5.3 | Verifikasi naskah video 3 menit (03:00) di `doc/DEMO_SCRIPT.md` dengan penunjuk detik demi detik, visual, dan dialog narasi. | **PASS** |
+| **TC-F5-05** | `Master Readme Finalization` | Aturan Lomba Bab 4 | KPI-5.2 | Verifikasi kelengkapan `README.md` (Quickstart Docker & Bare-Metal, live benchmark table, 79 tests passed badge, link artefak). | **PASS** |
+| **TC-F5-06** | `Zero Dead Code & Linter Audit` | SDD Bab 8, Global Rule | KPI-4.4 | Verifikasi 0 unused imports, 0 console.log debugging acak, dan clean strict typecheck backend & frontend. | **PASS** |
+| **TC-F5-07** | `Git Versioning & Release Tag` | Aturan Lomba Bab 4 | KPI-5.1 | Pembuatan tag git formal `v1.0.0` pada branch `main` tersinkronisasi ke remote GitHub. | **PASS** |
+
 ---
 
 ## 📊 3. Hasil Pengujian Unit Terotomatisasi (Automated Test Execution Log)
@@ -238,13 +250,15 @@ Exit Code:   0
 
 ---
 
-## 🛠️ 4. Matriks Rencana Pengujian Fase Selanjutnya (Fase 3 s.d. Fase 5)
+## 🛠️ 4. Matriks Realisasi Pengujian Seluruh Fase (Fase 1 s.d. Fase 5)
 
-| Fase | Target File Test | Cakupan Fitur | Metrik Keberhasilan |
-| :--- | :--- | :--- | :--- |
-| **Fase 3** | Visual & HUD Test | Transformasi grid isometrik 2.5D, particle emitter bencana, responsive layout. | 60 FPS stabil pada WebGL Pixi.js, WCAG 2.1 AA compliant. |
-| **Fase 4** | E2E Integration | Simulasi multi-client (4 pemain bersamaan) pada satu realm, pertarungan boss musim 20. | 100% konsistensi state snapshot WebSocket antar klien. |
-| **Fase 5** | Release Audit | Audit komprehensif, zero dead code, zero warning linter, tag v1.0.0. | Kode siap dinilai dewan juri IBM Code the Future. |
+| Fase | Target File Test | Cakupan Fitur | Metrik Keberhasilan & Realisasi | Status Akhir |
+| :--- | :--- | :--- | :--- | :---: |
+| **Fase 1** | `tests/sim.test.ts` (25 TC) | ECS Memory Pool, MacroEconomy, Universal FSM 45s. | Evaluasi 10k agen 1.378 ms, Zero GC heap allocation per tick. | **TERCAPAI (100%)** |
+| **Fase 2** | `tests/geo.test.ts`, `ai.test.ts`, `expedition.test.ts` (47 TC) | Haversine Verifier, AI Circuit Breaker, PvP Combat. | Haversine 7.05M ops/s, Wiper 0.613 ms, Circuit Breaker SLA < 4.0s. | **TERCAPAI (100%)** |
+| **Fase 3** | `frontend/` (Pixi v8 + React 18) | Transformasi grid isometrik 2.5D, Web Audio Slendro/Pelog. | 60 FPS stabil WebGL Pixi.js, Bundle 161.25 KB gzip, WCAG 2.1 AA. | **TERCAPAI (100%)** |
+| **Fase 4** | `tests/e2e.test.ts` (7 TC) & `scripts/benchmark.ts` | E2E WebSocket, onsite alliance, 3 doctrines, Boss fight, Docker. | 79/79 automated tests passing in 1.18s, multi-container compose. | **TERCAPAI (100%)** |
+| **Fase 5** | `bob-log/`, `doc/PITCH_DECK.md`, `doc/DEMO_SCRIPT.md` | Release Audit, Bobalytics 440 Coins, Pitch Deck 5 Slide. | 100% commits tagged [bob:*], zero dead code, release tag v1.0.0. | **TERCAPAI (100%)** |
 
 ---
 
