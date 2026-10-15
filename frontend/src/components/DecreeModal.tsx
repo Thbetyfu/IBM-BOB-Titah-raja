@@ -183,14 +183,14 @@ export const DecreeModal: React.FC = () => {
                 return (
                   <div
                     key={card.id}
-                    className="flex flex-col justify-between p-4 rounded-2xl bg-stone-900/80 border border-stone-800/80 hover:border-amber-500/40 transition-all hover:shadow-[0_8px_24px_rgba(217,119,6,0.15)] group"
+                    className="flex flex-col justify-between p-4 rounded-2xl lontar-card group"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-md bg-stone-800 text-amber-400/80 border border-stone-700">
+                        <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-md bg-stone-900/90 text-amber-300 border border-amber-500/30">
                           {card.kategori}
                         </span>
-                        <div className="flex items-center gap-1 text-amber-300 text-xs font-bold">
+                        <div className="flex items-center gap-1 text-amber-300 text-xs font-bold px-2 py-0.5 rounded-md bg-amber-950/40 border border-amber-500/30">
                           <Coins className="w-3.5 h-3.5" />
                           <span>{card.biayaEmas} Emas</span>
                         </div>

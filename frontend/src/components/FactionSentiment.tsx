@@ -27,7 +27,7 @@ export const FactionSentiment: React.FC = () => {
 
   return (
     <aside className="fixed bottom-3 left-3 z-20 w-80 max-w-[calc(100vw-24px)] select-none">
-      <div className="rounded-2xl bg-black/80 backdrop-blur-md border border-stone-800 shadow-[0_12px_36px_rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300">
+      <div className="rounded-2xl glass-panel-royal shadow-[0_12px_36px_rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300">
         {/* Header Toggle */}
         <div
           onClick={() => setIsCollapsed(!isCollapsed)}

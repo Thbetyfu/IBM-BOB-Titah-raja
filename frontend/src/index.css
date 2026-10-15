@@ -10,38 +10,79 @@
   }
 
   body {
-    background-color: #0b0f0b;
+    background-color: #080c08;
     color: #f1f5f9;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
   }
 }
 
-/* Glassmorphism custom styles */
+/* Nusantara Royal Glassmorphism */
 .glass-panel {
-  background: rgba(15, 23, 17, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(212, 175, 55, 0.22);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  background: rgba(14, 20, 15, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.55);
 }
 
-.glass-panel-gold {
-  background: rgba(28, 24, 14, 0.85);
+.glass-panel-royal {
+  background: radial-gradient(circle at top left, rgba(38, 28, 14, 0.88), rgba(15, 18, 14, 0.94));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(212, 175, 55, 0.55);
-  box-shadow: 0 0 25px rgba(212, 175, 55, 0.2), inset 0 0 15px rgba(212, 175, 55, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 215, 0, 0.25);
+}
+
+.glass-panel-gold {
+  background: rgba(28, 24, 14, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.25), inset 0 0 15px rgba(212, 175, 55, 0.12);
 }
 
 .glass-panel-danger {
-  background: rgba(35, 12, 12, 0.85);
+  background: rgba(35, 12, 12, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(220, 38, 38, 0.45);
-  box-shadow: 0 0 25px rgba(220, 38, 38, 0.25);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  box-shadow: 0 0 25px rgba(220, 38, 38, 0.3);
+}
+
+/* Lontar Manuscript Royal Policy Card */
+.lontar-card {
+  background: linear-gradient(145deg, rgba(26, 21, 14, 0.92) 0%, rgba(18, 16, 12, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), inset 0 0 12px rgba(212, 175, 55, 0.05);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lontar-card:hover {
+  border-color: rgba(255, 215, 0, 0.75);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.22), inset 0 0 16px rgba(212, 175, 55, 0.1);
+}
+
+/* Metallic Gold Foil Accent */
+.gold-foil-border {
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background-clip: padding-box;
+}
+
+@keyframes goldPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+  }
+}
+
+.animate-gold-pulse {
+  animation: goldPulse 3s infinite ease-in-out;
 }
 
 /* Custom scrollbars */
@@ -50,12 +91,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.4);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 175, 55, 0.65);
+  background: rgba(212, 175, 55, 0.75);
 }

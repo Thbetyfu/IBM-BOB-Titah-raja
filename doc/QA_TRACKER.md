@@ -512,6 +512,28 @@ Siklus Hidup Status Bug:
   5. Menambahkan listener global error di `index.html`.
 * **Verifikasi:** Vite hot-reloading berhasil, bundle produksi terkompilasi 100% bersih, dan kanvas 2.5D beserta seluruh HUD overlay tampil normal.
 
+#### 🔹 BUG-027: Kualitas Visual Aset Awal Berupa Vektor Geometris 2D Datar & Peningkatan ke 3D Blender Isometric Pipeline
+* **Status:** `[CLOSED]`
+* **Severity:** Medium
+* **Komponen:** `scripts/render_isometric_assets.py`, `frontend/src/engine/BuildingSprites.ts`, `CalamityEffects.ts`, `IsometricMap.ts`, `AgentSprites.ts`, `index.css`, `HudBar.tsx`, `DecreeModal.tsx`
+* **Gejala:** Tampilan kanvas 2.5D awal menggunakan bentuk vektor primitif (kotak/segitiga polos) yang dinilai pengguna belum memenuhi standar visual game modern ("jujur untuk UI dan Assetnya masih jelek bgt").
+* **Root Cause Analysis (RCA):**
+  1. Pada fase scaffolding awal, arsitektur visual `BuildingSprites.ts` dan `CalamityEffects.ts` menggunakan `Graphics.poly()` prosedural datar tanpa material tekstur PBR maupun bayangan ambient.
+  2. Map dan warga masih berformat flat tile tanpa terasering sawah, animasi riak sungai Sendang, maupun aksesori khas Nusantara.
+* **Resolusi:**
+  1. Mengimplementasikan pipeline render headless otomatis menggunakan Blender 4.4 (`scripts/render_isometric_assets.py`) dengan kamera ortografis sudut sejati 2:1 ($X=60^\circ, Z=45^\circ$) dan pencahayaan matahari tropis Nusantara.
+  2. Merender 10 aset transparan 2.5D beresolusi 512x512 ke `frontend/public/assets/`: Balai Wanua (Lv 1-3), Lumbung Desa (Lv 1-3), Pos Ronda (Lv 1-3), dan Boss Naga Banjir Sang Hyang Tuntang.
+  3. Mengintegrasikan aset 3D ke dalam `BuildingSprites.ts` dengan anchor dasar isometrik `(0.5, 0.75)` dan plakat level berlapis perunggu emas.
+  4. Meningkatkan `CalamityEffects.ts` dengan avatar 3D Boss Naga Banjir, riak gelombang air dinamis, dan bar darah berbingkai emas.
+  5. Meningkatkan `IsometricMap.ts` dengan kontur sawah terasering berlapis, pantulan air berkilau, jalan batu andesit, patok batas wanua lentera emas, serta animasi riak gelombang sungai Sendang.
+  6. Meningkatkan `AgentSprites.ts` dengan animasi langkah berirama (*bobbing walk cycle*), caping bambu, jarik lurik, dan perlengkapan autentik (cangkul tani, pikulan dagang, buntelan pengungsi, obor api pemberontak berkedip).
+  7. Meningkatkan UI Glassmorphism menjadi *Nusantara Royal Glass* dengan kartu lontar (`.lontar-card`), bingkai *gold foil* (`.glass-panel-royal`), dan aksen damask.
+* **Verifikasi:**
+  1. 10 berkas PNG aset 2.5D ter-generate sempurna dengan ukuran optimal (~100 KB per sprite).
+  2. `npm run frontend:typecheck` lolos dengan 0 error.
+  3. `npm run frontend:build` terkompilasi bersih dalam 10.94 detik.
+  4. `npm test` lulus 100% (79/79 test cases passing dalam 1.13 detik).
+
 ---
 
 ## 🛡️ 6. Protokol Pengujian Regresi Lintas Fase (Regression Protocol)

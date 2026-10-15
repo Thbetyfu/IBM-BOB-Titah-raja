@@ -58,10 +58,10 @@ export const HudBar: React.FC = () => {
   };
 
   return (
-    <header className="fixed top-2 left-2 right-2 z-30 flex flex-col md:flex-row items-center justify-between gap-2 p-2.5 rounded-2xl bg-black/75 backdrop-blur-md border border-amber-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.6)] text-white text-xs select-none">
+    <header className="fixed top-2 left-2 right-2 z-30 flex flex-col md:flex-row items-center justify-between gap-2 p-2.5 rounded-2xl glass-panel-royal text-white text-xs select-none">
       {/* Realm & Season Identity */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/80 to-amber-900/40 border border-amber-500/40">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-amber-900/60 to-amber-950/80 border border-amber-400/50 shadow-[0_0_12px_rgba(212,175,55,0.2)]">
           <span className="font-serif font-black tracking-wider text-amber-300 text-sm">
             {kingdom.namaWanua}
           </span>

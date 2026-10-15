@@ -98,6 +98,7 @@ export class PixiApp {
     this.app.ticker.add((ticker: { deltaTime: number }) => {
       if (this.isDestroyed) return;
       const deltaSec = ticker.deltaTime / 60;
+      this.isometricMap.update(deltaSec);
       this.agents.update(deltaSec);
       this.calamity.update(deltaSec);
 

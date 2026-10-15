@@ -36,7 +36,7 @@ export const BossHpOverlay: React.FC = () => {
 
   return (
     <div className="fixed top-18 left-1/2 -translate-x-1/2 z-30 w-full max-w-xl px-4 select-none animate-fadeIn">
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-black/85 backdrop-blur-md border border-red-500/50 shadow-[0_12px_40px_rgba(239,68,68,0.4)] text-stone-100 space-y-2.5">
+      <div className="p-3.5 sm:p-4 rounded-2xl glass-panel-danger shadow-[0_12px_40px_rgba(239,68,68,0.4)] text-stone-100 space-y-2.5">
         {/* Boss Title & Status Badge */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
