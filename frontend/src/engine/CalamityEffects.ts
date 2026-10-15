@@ -1,19 +1,19 @@
 /**
  * Titah Rakyat: Sovereign of the Living Realm
- * Calamity Weather Particle System & Boss Naga Banjir 3D Sprite (SDD Bab 5.2)
+ * Calamity Weather Particle System & Boss Naga Banjir 2.5D Sprite (SDD Bab 5.2)
  *
  * Implements:
  * 1. Dynamic weather particles:
  *    - CERAH: gentle ambient golden pollen/floating embers
- *    - PACEKLIK: drought haze, brown dust particles
+ *    - PACEKLIK: drought haze, amber sand drifting
  *    - BANJIR_BANDANG: torrential slanted rain, water ripples, lightning flashes
  * 2. Boss Naga Banjir Sang Hyang Tuntang:
- *    - 3D Blender Rendered Dragon Avatar Sprite with floating sinusoidal motion
+ *    - Hand-Painted Epic 2.5D Mythic Dragon surging from foaming turquoise river
  *    - Serpentine undulating tail coils cutting through the Sendang River
  *    - Royal Boss HP Bar, glowing water ripples, and lightning aura
  */
 
-import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js";
+import { Container, Graphics, Sprite, Assets, Text, TextStyle } from "pixi.js";
 import { IsometricMap } from "./IsometricMap";
 import { WeatherState } from "../store/useGameStore";
 
@@ -55,10 +55,11 @@ export class CalamityEffects {
     this.container.addChild(this.weatherGfx);
     this.container.addChild(this.nagaGfx);
 
-    // Initialize 3D Boss Naga Sprite
-    this.bossSprite = Sprite.from("/assets/units/boss_naga_banjir.png");
-    this.bossSprite.anchor.set(0.5, 0.75);
-    this.bossSprite.scale.set(0.24);
+    // Initialize 2.5D Hand-painted Boss Naga Sprite
+    const nagaTex = Assets.get("/assets/units/boss_naga_banjir.png");
+    this.bossSprite = nagaTex ? new Sprite(nagaTex) : Sprite.from("/assets/units/boss_naga_banjir.png");
+    this.bossSprite.anchor.set(0.5, 0.78);
+    this.bossSprite.scale.set(0.38);
     this.bossSprite.visible = false;
     this.container.addChild(this.bossSprite);
 
@@ -197,13 +198,12 @@ export class CalamityEffects {
   }
 
   /**
-   * 3D Sprite & Serpentine Multi-Segmented Naga Banjir Sang Hyang Tuntang
+   * 2.5D Sprite & Serpentine Multi-Segmented Naga Banjir Sang Hyang Tuntang
    */
   private renderNagaBanjir(): void {
     this.nagaGfx.clear();
     this.bossHpBarGfx.clear();
 
-    const segments = 14;
     const t = this.elapsedTime * 2.2;
 
     // Follow the river diagonal trajectory across grid coordinates
@@ -216,69 +216,33 @@ export class CalamityEffects {
     const headX = baseHeadPos.x;
     const headY = baseHeadPos.y + headFloatY;
 
-    // Position the 3D Boss Naga Sprite at the head
+    // Position the 2.5D Boss Naga Sprite at the head
     this.bossSprite.visible = true;
     this.bossSprite.position.set(headX, headY);
 
-    // Expand water ripple rings around 3D Naga base
-    const rippleRadius = 28 + Math.sin(t * 1.5) * 8;
-    this.nagaGfx.ellipse(headX, headY + 8, rippleRadius * 1.6, rippleRadius * 0.8);
-    this.nagaGfx.stroke({ color: 0x4ecdc4, width: 1.5, alpha: 0.5 });
-    this.nagaGfx.ellipse(headX, headY + 8, rippleRadius * 0.8, rippleRadius * 0.4);
-    this.nagaGfx.fill({ color: 0x1b4332, alpha: 0.25 });
+    // Expand water ripple rings around Naga base
+    const rippleRadius = 36 + Math.sin(t * 1.5) * 10;
+    this.nagaGfx.ellipse(headX, headY + 12, rippleRadius * 1.6, rippleRadius * 0.8);
+    this.nagaGfx.stroke({ color: 0x4ecdc4, width: 2, alpha: 0.6 });
+    this.nagaGfx.ellipse(headX, headY + 12, rippleRadius * 0.9, rippleRadius * 0.45);
+    this.nagaGfx.fill({ color: 0x1b4332, alpha: 0.3 });
 
     // Update Boss HP label & Bar above the Naga Head
     this.bossLabelContainer.visible = true;
-    this.bossLabelContainer.position.set(headX, headY - 62);
+    this.bossLabelContainer.position.set(headX, headY - 110);
     this.bossHpText.text = `Sang Hyang Naga Tuntang (${this.bossHp}/${this.bossMaxHp} HP)`;
 
     // Draw Boss HP Bar with gold border
-    const barW = 120;
-    const barH = 6;
+    const barW = 140;
+    const barH = 7;
     const fillFrac = Math.max(0, Math.min(1, this.bossHp / this.bossMaxHp));
-    this.bossHpBarGfx.roundRect(-barW / 2, 0, barW, barH, 3);
-    this.bossHpBarGfx.fill({ color: 0x1a0f0f, alpha: 0.85 });
-    this.bossHpBarGfx.stroke({ color: 0xd4af37, width: 1, alpha: 0.8 });
+    this.bossHpBarGfx.roundRect(-barW / 2, 0, barW, barH, 4);
+    this.bossHpBarGfx.fill({ color: 0x1a0f0f, alpha: 0.88 });
+    this.bossHpBarGfx.stroke({ color: 0xd4af37, width: 1.2, alpha: 0.85 });
 
     if (fillFrac > 0) {
-      this.bossHpBarGfx.roundRect(-barW / 2 + 1, 1, (barW - 2) * fillFrac, barH - 2, 2);
+      this.bossHpBarGfx.roundRect(-barW / 2 + 1, 1, (barW - 2) * fillFrac, barH - 2, 3);
       this.bossHpBarGfx.fill({ color: fillFrac > 0.4 ? 0xdc2626 : 0xef4444 });
-    }
-
-    // Draw Serpentine Trailing Coils in the river behind the 3D head
-    for (let i = segments; i >= 1; i--) {
-      const frac = i / segments;
-      const gx = headGridX - i * 0.52;
-      const gy = headGridY - i * 0.52;
-
-      const basePos = IsometricMap.gridToScreen(gx, gy);
-      const wave = Math.sin(t - i * 0.42) * 11;
-      const wavePos = {
-        x: basePos.x + wave * 0.89,
-        y: basePos.y - wave * 0.44 + Math.sin(t - i * 0.3) * 4
-      };
-
-      const segmentRadius = 9 - frac * 4.5;
-
-      // Water ripple around each segment
-      this.nagaGfx.ellipse(wavePos.x, wavePos.y + 2, segmentRadius * 1.5, segmentRadius * 0.75);
-      this.nagaGfx.fill({ color: 0x4ecdc4, alpha: 0.22 });
-
-      // Serpentine Jade Scale Body
-      this.nagaGfx.circle(wavePos.x, wavePos.y, segmentRadius);
-      this.nagaGfx.fill({ color: i % 2 === 0 ? 0x0f291e : 0x1b4332 });
-      this.nagaGfx.stroke({ color: 0x52b788, width: 1.2, alpha: 0.5 });
-
-      // Dorsal Golden Spines / Fin
-      if (i > 1 && i < segments - 1) {
-        const spineH = 5 - frac * 2.5;
-        this.nagaGfx.poly([
-          wavePos.x - 2, wavePos.y - segmentRadius,
-          wavePos.x, wavePos.y - segmentRadius - spineH,
-          wavePos.x + 2, wavePos.y - segmentRadius
-        ]);
-        this.nagaGfx.fill({ color: 0xffd166 });
-      }
     }
   }
 }

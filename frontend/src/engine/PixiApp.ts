@@ -3,7 +3,7 @@
  * Pixi.js v8 Canvas Application & Viewport Camera Loop (SDD Bab 5.1 & 5.2)
  */
 
-import { Application, Container } from "pixi.js";
+import { Application, Container, Assets } from "pixi.js";
 import { IsometricMap } from "./IsometricMap";
 import { BuildingSprites } from "./BuildingSprites";
 import { AgentSprites } from "./AgentSprites";
@@ -29,9 +29,9 @@ export class PixiApp {
   private isDragging: boolean = false;
   private dragStart = { x: 0, y: 0 };
   private cameraPos = { x: 0, y: 0 };
-  private zoomLevel: number = 1.0;
-  private minZoom: number = 0.5;
-  private maxZoom: number = 2.0;
+  private zoomLevel: number = 1.75;
+  private minZoom: number = 0.8;
+  private maxZoom: number = 3.2;
 
   constructor() {
     this.app = new Application();
@@ -53,7 +53,7 @@ export class PixiApp {
 
     await this.app.init({
       resizeTo: parent || window,
-      background: "#080c08",
+      background: "#0c140e", // Deep tropical twilight atmosphere
       antialias: true,
       resolution: typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
       autoDensity: true
@@ -72,6 +72,26 @@ export class PixiApp {
       parent.appendChild(this.app.canvas);
     }
 
+    // Preload all high-res 2.5D game assets before initializing sprites
+    const assetManifest = [
+      "/assets/buildings/balai_wanua_lv1.png",
+      "/assets/buildings/balai_wanua_lv2.png",
+      "/assets/buildings/balai_wanua_lv3.png",
+      "/assets/buildings/lumbung_desa_lv1.png",
+      "/assets/buildings/lumbung_desa_lv2.png",
+      "/assets/buildings/lumbung_desa_lv3.png",
+      "/assets/buildings/pos_ronda_lv1.png",
+      "/assets/buildings/pos_ronda_lv2.png",
+      "/assets/buildings/pos_ronda_lv3.png",
+      "/assets/units/boss_naga_banjir.png"
+    ];
+
+    try {
+      await Assets.load(assetManifest);
+    } catch (err) {
+      console.warn("Assets preload error, falling back to on-demand loading:", err);
+    }
+
     // Build Layer Hierarchy per SDD Bab 5.2
     this.app.stage.addChild(this.stageContainer);
     this.stageContainer.addChild(this.groundLayer);
@@ -80,10 +100,8 @@ export class PixiApp {
     this.stageContainer.addChild(this.entityLayer);
     this.stageContainer.addChild(this.calamityLayer);
 
-    // Center camera on the kingdom center
-    this.cameraPos.x = this.app.screen.width / 2;
-    this.cameraPos.y = this.app.screen.height / 3;
-    this.updateTransform();
+    // Center camera on the kingdom center at 1.75x zoom
+    this.resetCamera();
 
     // Initialize sub-systems
     this.isometricMap.init(this.groundLayer, this.riverLayer, this.roadLayer);
@@ -135,10 +153,9 @@ export class PixiApp {
       "wheel",
       (e: WheelEvent) => {
         e.preventDefault();
-        const zoomDelta = e.deltaY < 0 ? 1.1 : 0.9;
+        const zoomDelta = e.deltaY < 0 ? 1.12 : 0.89;
         const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoomLevel * zoomDelta));
 
-        // Zoom relative to pointer
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
@@ -171,9 +188,10 @@ export class PixiApp {
   }
 
   public resetCamera(): void {
-    this.zoomLevel = 1.0;
+    this.zoomLevel = 1.75;
+    // Map center is at (grid 9, 9) -> screen (0, 288)
     this.cameraPos.x = this.app.screen.width / 2;
-    this.cameraPos.y = this.app.screen.height / 3;
+    this.cameraPos.y = this.app.screen.height / 2 - (240 * this.zoomLevel) + 30;
     this.updateTransform();
   }
 
