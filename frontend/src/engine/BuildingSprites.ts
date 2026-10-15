@@ -1,11 +1,13 @@
 /**
  * Titah Rakyat: Sovereign of the Living Realm
- * 2.5D Isometric Building Sprites, Tactile Game-Feel & Interactive Juice (SDD Bab 5.2)
+ * Living Strategy Board District Compounds & Tactile Game Feel (SDD Bab 5.2)
+ * Inspired by Civilization VI, Manor Lords, and Bad North.
  *
- * Ingests Cozy Chunky 3D Stylized Royal Nusantara Assets:
- * 1. Balai Wanua (Joglo Keraton Agung, Levels 1-3) -> Click triggers Royal Gong Ageng & Decree Cheer
- * 2. Lumbung Desa (Elevated Teak Granary, Levels 1-3) -> Click triggers Harvest Chime & Granary Storage Pop
- * 3. Pos Ronda (Bastion Watchtower & Kentongan, Levels 1-3) -> Click triggers Kentongan Alarm Rhythms
+ * Implements:
+ * 1. Kompleks Balai Wanua: Paved stone courtyard, Majapahit Candi Bentar split gates, royal umbul-umbul flags, & Joglo Keraton.
+ * 2. Kompleks Lumbung Desa: Earthen drying yard, golden paddy drying mat, wooden handcart, & elevated thatched granary.
+ * 3. Kompleks Pos Ronda: Fortified earth bastion, sharpened timber palisade, signal fire brazier, & watchtower with kentongan.
+ * 4. Interactive squash-and-stretch clicks, procedural audio (Gong, Harvest, Kentongan), & floating tactical toasts.
  */
 
 import { Container, Graphics, Sprite, Assets, Text, TextStyle, FederatedPointerEvent } from "pixi.js";
@@ -31,6 +33,9 @@ export class BuildingSprites {
   private currentPosRondaLv: number = 1;
 
   private floatingToasts: FloatingToast[] = [];
+  private animTimer: number = 0;
+  private brazierFlameGfx!: Graphics;
+  private flagsGfx!: Graphics;
 
   public init(parent: Container): void {
     this.container = parent;
@@ -45,7 +50,7 @@ export class BuildingSprites {
     this.container.addChild(this.posRondaNode);
     this.container.addChild(this.toastLayer);
 
-    // Position buildings on strategic isometric kingdom coordinates
+    // Strategic district coordinates on the living strategy board
     const balaiPos = IsometricMap.gridToScreen(8, 5);
     this.balaiNode.position.set(balaiPos.x, balaiPos.y);
     this.setupInteractivity(this.balaiNode, "balai");
@@ -62,9 +67,6 @@ export class BuildingSprites {
     this.renderPosRonda(this.posRondaNode, 1);
   }
 
-  /**
-   * Sets up interactive pointer hover and bounce clicks with sound juice
-   */
   private setupInteractivity(node: Container, type: "balai" | "lumbung" | "pos_ronda"): void {
     node.eventMode = "static";
     node.cursor = "pointer";
@@ -83,36 +85,29 @@ export class BuildingSprites {
     });
   }
 
-  /**
-   * Triggers tactile squash & stretch bounce, procedural audio, and floating toast
-   */
   private handleClick(type: "balai" | "lumbung" | "pos_ronda", node: Container): void {
-    // 1. Squash & Stretch tactile game feel
-    node.scale.set(1.16, 0.86);
+    // Tactile squash-and-stretch
+    node.scale.set(1.15, 0.88);
 
-    // 2. Sound & Floating Juice
     if (type === "balai") {
       audioEngine.playGongAgeng(0);
-      this.spawnToast(node.x, node.y - 105, "Gong Titah Prabu!", "#ffd700", 0xd4af37);
+      this.spawnToast(node.x, node.y - 120, "GONG TITAH PRABU!", "#ffd700", 0xd4af37);
     } else if (type === "lumbung") {
       audioEngine.playHarvestChime();
-      this.spawnToast(node.x, node.y - 95, "+25 Padi Disimpan!", "#70c1b3", 0x4ecdc4);
+      this.spawnToast(node.x, node.y - 105, "+25 PADI DISIMPAN!", "#70c1b3", 0x4ecdc4);
     } else if (type === "pos_ronda") {
       audioEngine.playKentongan();
-      this.spawnToast(node.x, node.y - 110, "KENTONGAN SIAGA!", "#f4a261", 0xe76f51);
+      this.spawnToast(node.x, node.y - 125, "KENTONGAN SIAGA!", "#f4a261", 0xe76f51);
     }
   }
 
-  /**
-   * Spawns a floating comic badge that floats up and gently fades out
-   */
   private spawnToast(x: number, y: number, text: string, fillColor: string, borderColor: number): void {
     const toast = new Container();
     toast.position.set(x, y);
 
     const bg = new Graphics();
-    bg.roundRect(-65, -13, 130, 26, 8);
-    bg.fill({ color: 0x0a1410, alpha: 0.92 });
+    bg.roundRect(-70, -14, 140, 28, 8);
+    bg.fill({ color: 0x0c1613, alpha: 0.94 });
     bg.stroke({ color: borderColor, width: 2, alpha: 0.95 });
 
     const style = new TextStyle({
@@ -139,16 +134,14 @@ export class BuildingSprites {
 
     this.floatingToasts.push({
       container: toast,
-      vy: -48,
+      vy: -50,
       life: 0,
-      maxLife: 1.3
+      maxLife: 1.4
     });
   }
 
-  /**
-   * Update loop for spring physics and floating text toasts
-   */
   public update(deltaSec: number): void {
+    this.animTimer += deltaSec;
     const springSpeed = Math.min(1, deltaSec * 14);
 
     // Spring scales back to 1.0
@@ -157,6 +150,14 @@ export class BuildingSprites {
         node.scale.x += (1.0 - node.scale.x) * springSpeed;
         node.scale.y += (1.0 - node.scale.y) * springSpeed;
       }
+    }
+
+    // Animate animated elements (Brazier flame, flags)
+    if (this.brazierFlameGfx) {
+      this.updateBrazierFlame();
+    }
+    if (this.flagsGfx) {
+      this.updateRoyalFlags();
     }
 
     // Animate floating toasts
@@ -172,6 +173,48 @@ export class BuildingSprites {
         this.floatingToasts.splice(i, 1);
       }
     }
+  }
+
+  private updateBrazierFlame(): void {
+    const g = this.brazierFlameGfx;
+    g.clear();
+    const f = Math.sin(this.animTimer * 14) * 2;
+    // Outer flame
+    g.poly([
+      -3, 0,
+      f, -9,
+      3, 0
+    ]);
+    g.fill({ color: 0xff4500, alpha: 0.9 });
+    // Inner yellow core
+    g.poly([
+      -1.5, 0,
+      f * 0.5, -6,
+      1.5, 0
+    ]);
+    g.fill({ color: 0xffd700, alpha: 0.95 });
+  }
+
+  private updateRoyalFlags(): void {
+    const g = this.flagsGfx;
+    g.clear();
+    const wave = Math.sin(this.animTimer * 6) * 3;
+
+    // Left Candi Bentar Pennant
+    g.poly([
+      -46, -34,
+      -36 + wave, -30,
+      -46, -26
+    ]);
+    g.fill({ color: 0xe63946 });
+
+    // Right Candi Bentar Pennant
+    g.poly([
+      46, -34,
+      56 + wave, -30,
+      46, -26
+    ]);
+    g.fill({ color: 0xe63946 });
   }
 
   public updateLevels(balaiLv: number, lumbungLv: number, posRondaLv: number): void {
@@ -197,94 +240,289 @@ export class BuildingSprites {
   }
 
   /**
-   * Balai Wanua: Cozy Chunky 3D Joglo Keraton Agung
+   * 1. BALAI WANUA: Kompleks Keraton Agung (Civ VI Wonder/District Compound)
+   * Includes: Polished stone courtyard, Majapahit Candi Bentar split gates, royal umbul-umbul, & Joglo.
    */
   private renderBalaiWanua(node: Container, level: number): void {
     const safeLv = Math.min(3, Math.max(1, level));
 
-    // 1. Soft Ambient Ground Shadow
-    const shadow = new Graphics();
-    shadow.ellipse(0, 4, 52, 26);
-    shadow.fill({ color: 0x000000, alpha: 0.38 });
-    node.addChild(shadow);
+    // 1. Polished Andesite Stone Courtyard Plaza (Paving stone diorama base)
+    const courtyard = new Graphics();
+    courtyard.poly([
+      0, -38,
+      76, 0,
+      0, 38,
+      -76, 0
+    ]);
+    courtyard.fill({ color: 0x3a352e });
+    courtyard.stroke({ color: 0x5a5246, width: 2, alpha: 0.8 });
 
-    // 2. High-Fidelity 3D Cozy Chunky Asset
+    // Inner decorative court pavers
+    courtyard.poly([
+      0, -28,
+      56, 0,
+      0, 28,
+      -56, 0
+    ]);
+    courtyard.stroke({ color: 0x736858, width: 1, alpha: 0.5 });
+
+    // Raised Andesite Foundation Plinth for the Joglo
+    courtyard.poly([
+      0, -22,
+      44, 0,
+      0, 22,
+      -44, 0
+    ]);
+    courtyard.fill({ color: 0x4a4339 });
+    courtyard.stroke({ color: 0x8a7e6b, width: 1.5, alpha: 0.9 });
+
+    // Low courtyard perimeter wall with corner stone stupas
+    for (const [cx, cy] of [[-68, 0], [68, 0], [0, -32], [0, 32]]) {
+      courtyard.rect(cx - 3, cy - 8, 6, 8);
+      courtyard.fill({ color: 0x24201b });
+      courtyard.circle(cx, cy - 9, 2.5);
+      courtyard.fill({ color: 0xd4af37 });
+    }
+    node.addChild(courtyard);
+
+    // 2. Majapahit Candi Bentar (Red-Brick Split Gateway at entrance)
+    const candiBentar = new Graphics();
+    const gateY = 24;
+
+    // Left Pylon (Candi Bentar Kiri)
+    candiBentar.poly([
+      -22, gateY,
+      -22, gateY - 26,
+      -18, gateY - 26,
+      -18, gateY - 32,
+      -14, gateY - 32,
+      -14, gateY - 38,
+      -10, gateY - 38,
+      -10, gateY
+    ]);
+    candiBentar.fill({ color: 0xa8422b }); // Terracotta red brick
+    candiBentar.stroke({ color: 0x6e2616, width: 1 });
+    // Gold crest on left pylon
+    candiBentar.circle(-12, gateY - 40, 2);
+    candiBentar.fill({ color: 0xffd700 });
+
+    // Right Pylon (Candi Bentar Kanan)
+    candiBentar.poly([
+      10, gateY,
+      10, gateY - 38,
+      14, gateY - 38,
+      14, gateY - 32,
+      18, gateY - 32,
+      18, gateY - 26,
+      22, gateY - 26,
+      22, gateY
+    ]);
+    candiBentar.fill({ color: 0xa8422b });
+    candiBentar.stroke({ color: 0x6e2616, width: 1 });
+    // Gold crest on right pylon
+    candiBentar.circle(12, gateY - 40, 2);
+    candiBentar.fill({ color: 0xffd700 });
+
+    // Stone Steps between the split gate
+    candiBentar.rect(-8, gateY - 2, 16, 4);
+    candiBentar.fill({ color: 0x61584c });
+
+    node.addChild(candiBentar);
+
+    // 3. Royal Umbul-Umbul Flags & Animated Wave
+    this.flagsGfx = new Graphics();
+    // Bamboo flagpoles flanking the gate
+    candiBentar.moveTo(-46, gateY - 4);
+    candiBentar.lineTo(-46, -34);
+    candiBentar.stroke({ color: 0xca8a04, width: 2 });
+    candiBentar.moveTo(46, gateY - 4);
+    candiBentar.lineTo(46, -34);
+    candiBentar.stroke({ color: 0xca8a04, width: 2 });
+    node.addChild(this.flagsGfx);
+
+    // 4. Ceramic Water Urns (Genthong Air Tanah Liat)
+    const urnsGfx = new Graphics();
+    for (const ux of [-26, 26]) {
+      urnsGfx.ellipse(ux, gateY + 4, 4, 6);
+      urnsGfx.fill({ color: 0xb23b20 });
+      urnsGfx.ellipse(ux, gateY + 1, 3, 2);
+      urnsGfx.fill({ color: 0x5c4033 });
+    }
+    node.addChild(urnsGfx);
+
+    // 5. 3D Joglo Keraton Centerpiece Asset
     const spritePath = `/assets/buildings/balai_wanua_lv${safeLv}.png`;
     const texture = Assets.get(spritePath);
     const sprite = texture ? new Sprite(texture) : Sprite.from(spritePath);
-    sprite.anchor.set(0.5, 0.76);
-    sprite.scale.set(0.34);
+    sprite.anchor.set(0.5, 0.74);
+    sprite.scale.set(0.35);
+    sprite.position.set(0, -6);
     node.addChild(sprite);
 
-    // 3. Royal Level Inscribed Plaque
-    this.addBadge(node, "Balai Wanua", safeLv, 0, -96);
+    // 6. Royal District Badge
+    this.addDistrictBadge(node, "Keraton Wanua", "Pusat Titah", safeLv, 0, -108);
   }
 
   /**
-   * Lumbung Desa: Cozy Chunky 3D Elevated Nusantara Granary
+   * 2. LUMBUNG DESA: Kompleks Pertanian & Lumbung Padi (Manor Lords Harvest Compound)
+   * Includes: Sandy drying patio, golden paddy drying mat, wooden pushcart, baskets, & elevated granary.
    */
   private renderLumbungDesa(node: Container, level: number): void {
     const safeLv = Math.min(3, Math.max(1, level));
 
-    // 1. Soft Ambient Ground Shadow
-    const shadow = new Graphics();
-    shadow.ellipse(0, 4, 40, 20);
-    shadow.fill({ color: 0x000000, alpha: 0.36 });
-    node.addChild(shadow);
+    // 1. Agricultural Patio Base (Sandy threshing floor)
+    const patio = new Graphics();
+    patio.poly([
+      0, -32,
+      64, 0,
+      0, 32,
+      -64, 0
+    ]);
+    patio.fill({ color: 0x756543 });
+    patio.stroke({ color: 0x948259, width: 2, alpha: 0.8 });
 
-    // 2. High-Fidelity 3D Cozy Chunky Asset
+    // 2. Lantai Jemur Gabah (Woven bamboo mat with sun-drying golden grains)
+    patio.poly([
+      -36, 4,
+      -10, -9,
+      8, 0,
+      -18, 13
+    ]);
+    patio.fill({ color: 0xd4a373 }); // Woven bamboo mat
+    patio.stroke({ color: 0xa67c52, width: 1 });
+
+    // Golden Paddy Grains spread out
+    patio.poly([
+      -32, 4,
+      -12, -6,
+      4, 0,
+      -16, 10
+    ]);
+    patio.fill({ color: 0xffd166, alpha: 0.85 }); // Golden rice grain sheen
+
+    // 3. Traditional Wooden Pushcart (Gerobak Kayu Roda Dua)
+    const cartX = 30;
+    const cartY = 12;
+    // Wooden wheel
+    patio.circle(cartX, cartY, 5);
+    patio.fill({ color: 0x4a3525 });
+    patio.circle(cartX, cartY, 2);
+    patio.fill({ color: 0x8a6240 });
+    // Cart bed & handles
+    patio.rect(cartX - 8, cartY - 7, 14, 6);
+    patio.fill({ color: 0x6e4727 });
+    patio.stroke({ color: 0x3d2715, width: 1 });
+    patio.moveTo(cartX + 6, cartY - 5);
+    patio.lineTo(cartX + 12, cartY - 2);
+    patio.stroke({ color: 0x8a6240, width: 1.5 }); // Handle
+
+    // 4. Woven Bamboo Grain Baskets (Bakul/Tenggok)
+    for (const [bx, by] of [[-40, 16], [-28, 18], [20, 20]]) {
+      patio.circle(bx, by, 3.5);
+      patio.fill({ color: 0xc49b66 });
+      patio.circle(bx, by, 2.0);
+      patio.fill({ color: 0xffd166 }); // Filled with rice
+    }
+    node.addChild(patio);
+
+    // 5. 3D Elevated Granary Asset
     const spritePath = `/assets/buildings/lumbung_desa_lv${safeLv}.png`;
     const texture = Assets.get(spritePath);
     const sprite = texture ? new Sprite(texture) : Sprite.from(spritePath);
-    sprite.anchor.set(0.5, 0.82);
-    sprite.scale.set(0.30);
+    sprite.anchor.set(0.5, 0.80);
+    sprite.scale.set(0.31);
+    sprite.position.set(0, -4);
     node.addChild(sprite);
 
-    // 3. Royal Level Inscribed Plaque
-    this.addBadge(node, "Lumbung Desa", safeLv, 0, -88);
+    // 6. Agricultural District Badge
+    this.addDistrictBadge(node, "Lumbung Desa", "Depot Pangan", safeLv, 0, -96);
   }
 
   /**
-   * Pos Ronda: Cozy Chunky 3D Watchtower & Kentongan
+   * 3. POS RONDA: Kompleks Benteng Ronda & Barikade (Bad North Bastion Compound)
+   * Includes: Compact earth bastion, sharpened timber palisade, signal fire brazier, & watchtower.
    */
   private renderPosRonda(node: Container, level: number): void {
     const safeLv = Math.min(3, Math.max(1, level));
 
-    // 1. Soft Ambient Ground Shadow
-    const shadow = new Graphics();
-    shadow.ellipse(0, 4, 34, 18);
-    shadow.fill({ color: 0x000000, alpha: 0.34 });
-    node.addChild(shadow);
+    // 1. Fortified Earth Bastion Platform
+    const bastion = new Graphics();
+    bastion.poly([
+      0, -30,
+      58, 0,
+      0, 30,
+      -58, 0
+    ]);
+    bastion.fill({ color: 0x4f4236 });
+    bastion.stroke({ color: 0x6e5d4d, width: 2, alpha: 0.8 });
 
-    // 2. High-Fidelity 3D Cozy Chunky Asset
+    // 2. Sharpened Timber Palisade Stakes (Pagar Kayu Runcing)
+    const palisadeX = 22;
+    const palisadeY = -8;
+    for (let i = 0; i < 5; i++) {
+      const sx = palisadeX + i * 5;
+      const sy = palisadeY + i * 2.5;
+      bastion.moveTo(sx, sy);
+      bastion.lineTo(sx, sy - 14);
+      bastion.lineTo(sx + 2, sy - 16); // Sharp spike
+      bastion.lineTo(sx + 4, sy - 14);
+      bastion.lineTo(sx + 4, sy);
+      bastion.fill({ color: 0x5a3e28 });
+      bastion.stroke({ color: 0x3b2819, width: 0.8 });
+    }
+
+    // 3. Signal Fire Brazier Tripod (Tungku Obor Jaga Malam)
+    const bzX = -26;
+    const bzY = 10;
+    // Tripod legs & iron bowl
+    bastion.moveTo(bzX - 4, bzY + 6);
+    bastion.lineTo(bzX, bzY);
+    bastion.lineTo(bzX + 4, bzY + 6);
+    bastion.stroke({ color: 0x1f2421, width: 1.5 });
+    bastion.ellipse(bzX, bzY, 5, 2.5);
+    bastion.fill({ color: 0x111614 });
+    bastion.ellipse(bzX, bzY, 3.5, 1.5);
+    bastion.fill({ color: 0xff6b35 }); // Glowing embers
+
+    node.addChild(bastion);
+
+    // Dynamic flickering flame container
+    this.brazierFlameGfx = new Graphics();
+    this.brazierFlameGfx.position.set(bzX, bzY);
+    node.addChild(this.brazierFlameGfx);
+
+    // 4. 3D Watchtower & Kentongan Asset
     const spritePath = `/assets/buildings/pos_ronda_lv${safeLv}.png`;
     const texture = Assets.get(spritePath);
     const sprite = texture ? new Sprite(texture) : Sprite.from(spritePath);
-    sprite.anchor.set(0.5, 0.86);
-    sprite.scale.set(0.30);
+    sprite.anchor.set(0.5, 0.84);
+    sprite.scale.set(0.31);
+    sprite.position.set(0, -6);
     node.addChild(sprite);
 
-    // 3. Royal Level Inscribed Plaque
-    this.addBadge(node, "Pos Ronda", safeLv, 0, -98);
+    // 5. Frontier Bastion District Badge
+    this.addDistrictBadge(node, "Pos Ronda", "Benteng Perbatasan", safeLv, 0, -108);
   }
 
   /**
-   * Royal Inscribed Plaque Badge
+   * Premium Civilization VI / Manor Lords Style District Badge
    */
-  private addBadge(node: Container, title: string, level: number, x: number, y: number): void {
+  private addDistrictBadge(node: Container, title: string, subtitle: string, level: number, x: number, y: number): void {
     const badgeContainer = new Container();
     badgeContainer.position.set(x, y);
 
     const bg = new Graphics();
-    bg.roundRect(-46, -11, 92, 22, 6);
-    bg.fill({ color: 0x141a14, alpha: 0.92 });
-    bg.stroke({ color: 0xd4af37, width: 1.5, alpha: 0.9 });
+    // Bronze & gold royal plaque with stepped corner bevels
+    bg.roundRect(-55, -14, 110, 28, 6);
+    bg.fill({ color: 0x121a15, alpha: 0.94 });
+    bg.stroke({ color: 0xd4af37, width: 1.8, alpha: 0.95 });
 
-    bg.circle(-40, 0, 1.5);
-    bg.circle(40, 0, 1.5);
-    bg.fill({ color: 0xffd700, alpha: 0.9 });
+    // Inner gold corner dot accents
+    bg.circle(-48, 0, 1.8);
+    bg.circle(48, 0, 1.8);
+    bg.fill({ color: 0xffd700, alpha: 0.95 });
 
-    const style = new TextStyle({
+    const titleStyle = new TextStyle({
       fontFamily: "Inter, 'Cinzel', serif",
       fontSize: 10,
       fontWeight: "bold",
@@ -299,14 +537,31 @@ export class BuildingSprites {
       }
     });
 
-    const text = new Text({
-      text: `${title} (Lv.${level})`,
-      style
+    const subStyle = new TextStyle({
+      fontFamily: "Inter, sans-serif",
+      fontSize: 7.5,
+      fontWeight: "600",
+      fill: "#a8dadc",
+      align: "center"
     });
-    text.anchor.set(0.5);
+
+    const titleText = new Text({
+      text: `${title} (Lv.${level})`,
+      style: titleStyle
+    });
+    titleText.anchor.set(0.5);
+    titleText.position.set(0, -4);
+
+    const subText = new Text({
+      text: subtitle.toUpperCase(),
+      style: subStyle
+    });
+    subText.anchor.set(0.5);
+    subText.position.set(0, 6.5);
 
     badgeContainer.addChild(bg);
-    badgeContainer.addChild(text);
+    badgeContainer.addChild(titleText);
+    badgeContainer.addChild(subText);
     node.addChild(badgeContainer);
   }
 }
